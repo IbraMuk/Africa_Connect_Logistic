@@ -96,6 +96,25 @@ async function startServer() {
     await sequelize.authenticate();
     console.log("✓ Connexion à la base de données établie");
 
+    // Créer la table clients si elle n'existe pas (avant factures pour la clé étrangère)
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS "clients" (
+        "id" SERIAL PRIMARY KEY,
+        "nom" VARCHAR(255) NOT NULL,
+        "prenom" VARCHAR(255) NOT NULL,
+        "email" VARCHAR(255) UNIQUE NOT NULL,
+        "telephone" VARCHAR(20),
+        "adresse" TEXT,
+        "ville" VARCHAR(255),
+        "pays" VARCHAR(255),
+        "type" VARCHAR(20) NOT NULL DEFAULT 'particulier' CHECK ("type" IN ('particulier','entreprise','gouvernement','autre')),
+        "statut" VARCHAR(20) NOT NULL DEFAULT 'actif' CHECK ("statut" IN ('actif','inactif','suspendu')),
+        "dateInscription" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Créer la table factures si elle n'existe pas encore
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS "factures" (
@@ -209,41 +228,6 @@ async function startServer() {
       )
     `);
 
-    // Créer la table factures si elle n'existe pas
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS "factures" (
-        "id" SERIAL PRIMARY KEY,
-        "clientId" INTEGER,
-        "numero" VARCHAR(255) UNIQUE NOT NULL,
-        "dateFacture" DATE NOT NULL,
-        "dateEcheance" DATE,
-        "montant" DECIMAL(10,2) NOT NULL,
-        "statut" VARCHAR(20) NOT NULL DEFAULT 'En attente' CHECK ("statut" IN ('Payée','En attente','Annulée','Partielle')),
-        "description" TEXT,
-        "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Créer la table clients si elle n'existe pas
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS "clients" (
-        "id" SERIAL PRIMARY KEY,
-        "nom" VARCHAR(255) NOT NULL,
-        "prenom" VARCHAR(255) NOT NULL,
-        "email" VARCHAR(255) UNIQUE NOT NULL,
-        "telephone" VARCHAR(20),
-        "adresse" TEXT,
-        "ville" VARCHAR(255),
-        "pays" VARCHAR(255),
-        "type" VARCHAR(20) NOT NULL DEFAULT 'particulier' CHECK ("type" IN ('particulier','entreprise','gouvernement','autre')),
-        "statut" VARCHAR(20) NOT NULL DEFAULT 'actif' CHECK ("statut" IN ('actif','inactif','suspendu')),
-        "dateInscription" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
     // Créer la table categories si elle n'existe pas
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS "categories" (
@@ -256,10 +240,9 @@ async function startServer() {
       )
     `);
 
-    // Supprimer et recréer la table marchandises avec la structure complète
-    await sequelize.query(`DROP TABLE IF EXISTS "marchandises" CASCADE`);
+    // Créer la table marchandises si elle n'existe pas
     await sequelize.query(`
-      CREATE TABLE "marchandises" (
+      CREATE TABLE IF NOT EXISTS "marchandises" (
         "id" SERIAL PRIMARY KEY,
         "reference" VARCHAR(255) UNIQUE NOT NULL,
         "designation" VARCHAR(255) NOT NULL,
