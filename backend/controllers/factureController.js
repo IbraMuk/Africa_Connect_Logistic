@@ -204,9 +204,10 @@ exports.generateFacturePDF = async (req, res) => {
     data.adresse = data.client?.adresse;
 
     const pdfBuffer = await pdfService.generateFacturePDF(data);
-    res.setHeader('Content-Type', 'application/pdf');
+    const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
+    res.type('application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="facture-${facture.id}.pdf"`);
-    res.send(pdfBuffer);
+    res.end(buffer);
   } catch (error) {
     console.error('generateFacturePDF:', error);
     res.status(500).json({ success: false, message: 'Erreur génération PDF', error: error.message });
