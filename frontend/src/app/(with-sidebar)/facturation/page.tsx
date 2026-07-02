@@ -999,12 +999,24 @@ export default function FacturationPage() {
                   </div>
                 </div>
               ) : pdfUrl ? (
-                <iframe
-                  src={pdfUrl}
+                <object
+                  data={pdfUrl}
+                  type="application/pdf"
                   className="w-full h-full"
                   title="Facture PDF"
-                  type="application/pdf"
-                />
+                >
+                  <div className="w-full h-full flex flex-col items-center justify-center p-8">
+                    <p className="text-gray-600 mb-4">Le navigateur ne peut pas afficher le PDF directement.</p>
+                    <a
+                      href={pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                    >
+                      Ouvrir dans un nouvel onglet
+                    </a>
+                  </div>
+                </object>
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <p className="text-red-600">Erreur: URL du PDF non disponible</p>
