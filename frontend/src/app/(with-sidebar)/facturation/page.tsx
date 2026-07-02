@@ -58,6 +58,7 @@ export default function FacturationPage() {
   const [showPDFModal, setShowPDFModal] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [loadingPDF, setLoadingPDF] = useState(false);
+  const [pdfFacture, setPdfFacture] = useState<Facture | null>(null);
 
   // États pour la recherche de client
   const [clients, setClients] = useState<Client[]>([]);
@@ -284,17 +285,19 @@ export default function FacturationPage() {
   };
 
   // Fonction pour voir/générer le PDF d'une facture
-  const handleViewPDF = async (factureId: string) => {
+  const handleViewPDF = async (facture: Facture) => {
     setLoadingPDF(true);
+    setPdfFacture(facture);
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      const response = await fetch(`${API_URL}/factures/${factureId}/pdf`);
+      const response = await fetch(`${API_URL}/factures/${facture.id}/pdf`);
       if (!response.ok) {
         const text = await response.text();
         throw new Error(`Erreur ${response.status}: ${text}`);
       }
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const pdfBlob = new Blob([blob], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
       setPdfUrl(url);
       setShowPDFModal(true);
     } catch (error: any) {
@@ -311,6 +314,7 @@ export default function FacturationPage() {
       window.URL.revokeObjectURL(pdfUrl);
       setPdfUrl("");
     }
+    setPdfFacture(null);
     setShowPDFModal(false);
   };
 
@@ -512,7 +516,7 @@ export default function FacturationPage() {
                           <EyeIcon className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleViewPDF(facture.id)}
+                          onClick={() => handleViewPDF(facture)}
                           className="text-green-600 hover:text-green-900"
                           title="Voir le PDF"
                         >
@@ -1004,6 +1008,7 @@ export default function FacturationPage() {
                   src={pdfUrl}
                   className="w-full h-full"
                   title="Facture PDF"
+                  type="application/pdf"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -1012,7 +1017,14 @@ export default function FacturationPage() {
               )}
             </div>
             {/* Footer */}
-            <div className="flex justify-end px-6 py-4 border-t">
+            <div className="flex justify-end px-6 py-4 border-t gap-3">
+              <a
+                href={pdfUrl}
+                download={`facture-${pdfFacture?.id || "document"}.pdf`}
+                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+              >
+                Télécharger
+              </a>
               <button
                 onClick={closePDFModal}
                 className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
