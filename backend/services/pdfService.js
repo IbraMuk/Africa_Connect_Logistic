@@ -13,7 +13,10 @@ class PDFService {
       ];
       for (const logoPath of logoPaths) {
         if (fs.existsSync(logoPath)) {
-          return "file:///" + logoPath.replace(/\\/g, "/");
+          const ext = path.extname(logoPath).slice(1).toLowerCase();
+          const mime = ext === "jpg" ? "jpeg" : ext;
+          const base64 = fs.readFileSync(logoPath).toString("base64");
+          return `data:image/${mime};base64,${base64}`;
         }
       }
       return null;
