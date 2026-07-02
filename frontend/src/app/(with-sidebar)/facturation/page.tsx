@@ -94,19 +94,14 @@ export default function FacturationPage() {
     }
   }, [searchTerm, filtreStatut]);
 
-  // Effet pour charger les factures
-  useEffect(() => {
-    loadFactures();
-  }, [loadFactures]);
-
-  // Effet pour le debounce de la recherche
+  // Effet pour charger les factures (initial + recherche avec debounce)
   useEffect(() => {
     const timer = setTimeout(() => {
       loadFactures();
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, loadFactures]);
+  }, [searchTerm, filtreStatut, loadFactures]);
 
   const stats = {
     total: factures.reduce((acc, f) => acc + f.montant, 0),
