@@ -115,9 +115,9 @@ async function startServer() {
       )
     `);
 
-    // Créer la table factures si elle n'existe pas encore
+    // Créer la table factures_standard (factures classiques par client) si elle n'existe pas encore
     await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS "factures" (
+      CREATE TABLE IF NOT EXISTS "factures_standard" (
         "id" VARCHAR(255) NOT NULL PRIMARY KEY,
         "clientId" INTEGER NOT NULL REFERENCES "clients"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
         "dateFacture" DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -232,11 +232,11 @@ async function startServer() {
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS "categories" (
         "id" SERIAL PRIMARY KEY,
-        "nom" VARCHAR(255) NOT NULL,
+        "nom" VARCHAR(255) NOT NULL UNIQUE,
+        "categorie" VARCHAR(255) NOT NULL,
+        "sousCategorie" VARCHAR(255),
         "description" TEXT,
-        "statut" VARCHAR(20) NOT NULL DEFAULT 'actif' CHECK ("statut" IN ('actif','inactif')),
-        "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        "codeHS" VARCHAR(255)
       )
     `);
 
@@ -246,14 +246,22 @@ async function startServer() {
         "id" SERIAL PRIMARY KEY,
         "reference" VARCHAR(255) UNIQUE NOT NULL,
         "designation" VARCHAR(255) NOT NULL,
+        "categoriePrincipale" VARCHAR(50) NOT NULL DEFAULT 'Fini' CHECK ("categoriePrincipale" IN ('Matière première','Semi-fini','Fini','Spécial')),
         "categorieId" INTEGER,
+        "codeHS" VARCHAR(10),
         "poids" DECIMAL(10,2) NOT NULL,
         "volume" DECIMAL(10,3) NOT NULL,
+        "quantite" DECIMAL(12,2),
+        "unite" VARCHAR(20) DEFAULT 'kg' CHECK ("unite" IN ('kg','tonne','m3','litre','unité','carton','palette')),
+        "valeurMarchande" DECIMAL(15,2),
+        "devise" VARCHAR(10) DEFAULT 'USD' CHECK ("devise" IN ('USD','EUR','CDF','XAF','XOF')),
         "expediteurId" INTEGER NOT NULL,
         "destinataireNom" VARCHAR(255) NOT NULL,
         "destinataireTelephone" VARCHAR(255) NOT NULL,
         "destinataireEmail" VARCHAR(255),
         "destinataireAdresse" TEXT,
+        "paysOrigine" VARCHAR(100),
+        "paysDestination" VARCHAR(100),
         "villeDepart" VARCHAR(255) NOT NULL,
         "villeArrivee" VARCHAR(255) NOT NULL,
         "adresseRamassage" TEXT,
@@ -264,7 +272,11 @@ async function startServer() {
         "statut" VARCHAR(20) NOT NULL DEFAULT 'En attente' CHECK ("statut" IN ('En attente','En transit','Livré','Retardé','Perdu')),
         "priorite" VARCHAR(20) NOT NULL DEFAULT 'Normale' CHECK ("priorite" IN ('Basse','Normale','Haute','Urgente')),
         "typeTransport" VARCHAR(20) NOT NULL DEFAULT 'Routier' CHECK ("typeTransport" IN ('Routier','Aérien','Maritime','Ferroviaire')),
+        "exigencesReglementaires" TEXT,
+        "conditionsStockage" TEXT,
+        "documentsAssocies" TEXT,
         "instructionsSpeciales" TEXT,
+        "observations" TEXT,
         "valeurDeclaree" DECIMAL(12,2),
         "assurance" BOOLEAN DEFAULT false,
         "numeroSuivi" VARCHAR(255) UNIQUE,
@@ -330,6 +342,49 @@ async function startServer() {
         "statut" VARCHAR(20) NOT NULL DEFAULT 'en_cours' CHECK ("statut" IN ('en_cours','termine','annule','retard')),
         "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Créer la table factures si elle n'existe pas
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS "factures" (
+        "id" SERIAL PRIMARY KEY,
+        "numeroFacture" VARCHAR(255) UNIQUE NOT NULL,
+        "typeOperation" VARCHAR(20) NOT NULL CHECK ("typeOperation" IN ('import','export')),
+        "dateFacture" DATE NOT NULL,
+        "dateEcheance" DATE,
+        "clientNom" VARCHAR(255) NOT NULL,
+        "clientEmail" VARCHAR(255),
+        "clientTelephone" VARCHAR(255),
+        "clientAdresse" TEXT,
+        "instructions" TEXT,
+        "totalHT" DECIMAL(15,2) NOT NULL,
+        "totalTVA" DECIMAL(15,2) NOT NULL,
+        "totalTTC" DECIMAL(15,2) NOT NULL,
+        "totalPoids" DECIMAL(12,2),
+        "totalVolume" DECIMAL(12,2),
+        "statut" VARCHAR(20) NOT NULL DEFAULT 'en_attente' CHECK ("statut" IN ('en_attente','payee','annulee')),
+        "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Créer la table facture_marchandises si elle n'existe pas
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS "facture_marchandises" (
+        "id" SERIAL PRIMARY KEY,
+        "factureId" INTEGER NOT NULL,
+        "marchandiseId" INTEGER NOT NULL,
+        "reference" VARCHAR(255),
+        "designation" VARCHAR(255) NOT NULL,
+        "categorie" VARCHAR(255),
+        "quantite" DECIMAL(12,2) NOT NULL,
+        "poids" DECIMAL(10,2) NOT NULL,
+        "volume" DECIMAL(10,3) NOT NULL,
+        "prixUnitaire" DECIMAL(15,2) NOT NULL,
+        "montantTotal" DECIMAL(15,2) NOT NULL,
+        "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("factureId") REFERENCES "factures"("id") ON DELETE CASCADE
       )
     `);
 

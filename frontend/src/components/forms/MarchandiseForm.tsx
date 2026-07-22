@@ -24,14 +24,22 @@ export default function MarchandiseForm({
   const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     designation: "",
+    categoriePrincipale: "Fini",
     categorieId: "",
+    codeHS: "",
     poids: "",
     volume: "",
+    quantite: "",
+    unite: "kg",
+    valeurMarchande: "",
+    devise: "USD",
     expediteurId: "",
     destinataireNom: "",
     destinataireTelephone: "",
     destinataireEmail: "",
     destinataireAdresse: "",
+    paysOrigine: "",
+    paysDestination: "",
     villeDepart: "",
     villeArrivee: "",
     adresseRamassage: "",
@@ -40,13 +48,18 @@ export default function MarchandiseForm({
     dateLivraisonPrevue: "",
     priorite: "Normale",
     typeTransport: "Routier",
+    exigencesReglementaires: "",
+    conditionsStockage: "",
+    documentsAssocies: "",
     instructionsSpeciales: "",
+    observations: "",
     valeurDeclaree: "",
     assurance: false,
     coutTransport: "",
   });
   const [errors, setErrors] = useState<{
     designation?: string;
+    codeHS?: string;
     poids?: string;
     volume?: string;
     expediteurId?: string;
@@ -54,6 +67,8 @@ export default function MarchandiseForm({
     destinataireTelephone?: string;
     destinataireEmail?: string;
     destinataireAdresse?: string;
+    paysOrigine?: string;
+    paysDestination?: string;
     villeDepart?: string;
     villeArrivee?: string;
     adresseRamassage?: string;
@@ -73,20 +88,85 @@ export default function MarchandiseForm({
       loadCategories();
       if (initialData) {
         setFormData({
-          ...formData,
-          ...initialData,
+          designation: initialData.designation || "",
+          categoriePrincipale: initialData.categoriePrincipale || "Fini",
+          categorieId: initialData.categorieId || "",
+          codeHS: initialData.codeHS || "",
+          poids: initialData.poids || "",
+          volume: initialData.volume || "",
+          quantite: initialData.quantite || "",
+          unite: initialData.unite || "kg",
+          valeurMarchande: initialData.valeurMarchande || "",
+          devise: initialData.devise || "USD",
+          expediteurId: initialData.expediteurId || "",
+          destinataireNom: initialData.destinataireNom || "",
+          destinataireTelephone: initialData.destinataireTelephone || "",
+          destinataireEmail: initialData.destinataireEmail || "",
+          destinataireAdresse: initialData.destinataireAdresse || "",
+          paysOrigine: initialData.paysOrigine || "",
+          paysDestination: initialData.paysDestination || "",
+          villeDepart: initialData.villeDepart || "",
+          villeArrivee: initialData.villeArrivee || "",
+          adresseRamassage: initialData.adresseRamassage || "",
+          adresseLivraison: initialData.adresseLivraison || "",
           dateEnvoi: initialData.dateEnvoi
             ? new Date(initialData.dateEnvoi).toISOString().split("T")[0]
-            : formData.dateEnvoi,
+            : new Date().toISOString().split("T")[0],
           dateLivraisonPrevue: initialData.dateLivraisonPrevue
             ? new Date(initialData.dateLivraisonPrevue)
                 .toISOString()
                 .split("T")[0]
             : "",
+          priorite: initialData.priorite || "Normale",
+          typeTransport: initialData.typeTransport || "Routier",
+          exigencesReglementaires: initialData.exigencesReglementaires || "",
+          conditionsStockage: initialData.conditionsStockage || "",
+          documentsAssocies: initialData.documentsAssocies || "",
+          instructionsSpeciales: initialData.instructionsSpeciales || "",
+          observations: initialData.observations || "",
+          valeurDeclaree: initialData.valeurDeclaree || "",
+          assurance: initialData.assurance || false,
+          coutTransport: initialData.coutTransport || "",
+        });
+      } else {
+        setFormData({
+          designation: "",
+          categoriePrincipale: "Fini",
+          categorieId: "",
+          codeHS: "",
+          poids: "",
+          volume: "",
+          quantite: "",
+          unite: "kg",
+          valeurMarchande: "",
+          devise: "USD",
+          expediteurId: "",
+          destinataireNom: "",
+          destinataireTelephone: "",
+          destinataireEmail: "",
+          destinataireAdresse: "",
+          paysOrigine: "",
+          paysDestination: "",
+          villeDepart: "",
+          villeArrivee: "",
+          adresseRamassage: "",
+          adresseLivraison: "",
+          dateEnvoi: new Date().toISOString().split("T")[0],
+          dateLivraisonPrevue: "",
+          priorite: "Normale",
+          typeTransport: "Routier",
+          exigencesReglementaires: "",
+          conditionsStockage: "",
+          documentsAssocies: "",
+          instructionsSpeciales: "",
+          observations: "",
+          valeurDeclaree: "",
+          assurance: false,
+          coutTransport: "",
         });
       }
     }
-  }, [isOpen, initialData, formData]);
+  }, [isOpen, initialData]);
 
   const loadClients = async () => {
     try {
@@ -179,6 +259,8 @@ export default function MarchandiseForm({
         ...formData,
         poids: parseFloat(formData.poids),
         volume: parseFloat(formData.volume),
+        quantite: formData.quantite ? parseFloat(formData.quantite) : null,
+        valeurMarchande: formData.valeurMarchande ? parseFloat(formData.valeurMarchande) : null,
         valeurDeclaree: formData.valeurDeclaree
           ? parseFloat(formData.valeurDeclaree)
           : null,
@@ -209,14 +291,22 @@ export default function MarchandiseForm({
   const resetForm = () => {
     setFormData({
       designation: "",
+      categoriePrincipale: "Fini",
       categorieId: "",
+      codeHS: "",
       poids: "",
       volume: "",
+      quantite: "",
+      unite: "kg",
+      valeurMarchande: "",
+      devise: "USD",
       expediteurId: "",
       destinataireNom: "",
       destinataireTelephone: "",
       destinataireEmail: "",
       destinataireAdresse: "",
+      paysOrigine: "",
+      paysDestination: "",
       villeDepart: "",
       villeArrivee: "",
       adresseRamassage: "",
@@ -225,7 +315,11 @@ export default function MarchandiseForm({
       dateLivraisonPrevue: "",
       priorite: "Normale",
       typeTransport: "Routier",
+      exigencesReglementaires: "",
+      conditionsStockage: "",
+      documentsAssocies: "",
       instructionsSpeciales: "",
+      observations: "",
       valeurDeclaree: "",
       assurance: false,
       coutTransport: "",
@@ -298,7 +392,25 @@ export default function MarchandiseForm({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Catégorie
+                    Catégorie principale
+                  </label>
+                  <select
+                    value={formData.categoriePrincipale}
+                    onChange={(e) =>
+                      setFormData({ ...formData, categoriePrincipale: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Matière première">Matière première</option>
+                    <option value="Semi-fini">Semi-fini</option>
+                    <option value="Fini">Fini</option>
+                    <option value="Spécial">Spécial</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Catégorie (sous-catégorie)
                   </label>
                   <select
                     value={formData.categorieId}
@@ -319,6 +431,23 @@ export default function MarchandiseForm({
                       Chargement des catégories...
                     </p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Code HS (code douanier)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.codeHS}
+                    onChange={(e) =>
+                      setFormData({ ...formData, codeHS: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ex: 090111"
+                    maxLength={10}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Code douanier (6 à 10 chiffres)</p>
                 </div>
 
                 <div>
@@ -361,6 +490,80 @@ export default function MarchandiseForm({
                   {errors.volume && (
                     <p className="text-red-500 text-sm mt-1">{errors.volume}</p>
                   )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Quantité
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.quantite}
+                      onChange={(e) =>
+                        setFormData({ ...formData, quantite: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Unité
+                    </label>
+                    <select
+                      value={formData.unite}
+                      onChange={(e) =>
+                        setFormData({ ...formData, unite: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="kg">kg</option>
+                      <option value="tonne">tonne</option>
+                      <option value="m3">m³</option>
+                      <option value="litre">litre</option>
+                      <option value="unité">unité</option>
+                      <option value="carton">carton</option>
+                      <option value="palette">palette</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Valeur marchande
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.valeurMarchande}
+                      onChange={(e) =>
+                        setFormData({ ...formData, valeurMarchande: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Devise
+                    </label>
+                    <select
+                      value={formData.devise}
+                      onChange={(e) =>
+                        setFormData({ ...formData, devise: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="CDF">CDF</option>
+                      <option value="XAF">XAF</option>
+                      <option value="XOF">XOF</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -493,6 +696,36 @@ export default function MarchandiseForm({
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Adresse complète du destinataire"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Pays d'origine
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.paysOrigine}
+                    onChange={(e) =>
+                      setFormData({ ...formData, paysOrigine: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ex: RD Congo"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Pays de destination
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.paysDestination}
+                    onChange={(e) =>
+                      setFormData({ ...formData, paysDestination: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ex: Angola"
                   />
                 </div>
               </div>
@@ -672,6 +905,60 @@ export default function MarchandiseForm({
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Exigences réglementaires
+                  </label>
+                  <textarea
+                    value={formData.exigencesReglementaires}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        exigencesReglementaires: e.target.value,
+                      })
+                    }
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Certificat sanitaire, licence d'importation, ADR, phytosanitaire, etc."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Conditions de stockage
+                  </label>
+                  <textarea
+                    value={formData.conditionsStockage}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        conditionsStockage: e.target.value,
+                      })
+                    }
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Chaîne du froid, entrepôt sec, zone sécurisée..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Documents associés
+                  </label>
+                  <textarea
+                    value={formData.documentsAssocies}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        documentsAssocies: e.target.value,
+                      })
+                    }
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Facture commerciale, certificat d'origine, connaissement, assurance..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Instructions spéciales
                   </label>
                   <textarea
@@ -682,9 +969,27 @@ export default function MarchandiseForm({
                         instructionsSpeciales: e.target.value,
                       })
                     }
-                    rows={3}
+                    rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Instructions particulières pour la manutention..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Observations
+                  </label>
+                  <textarea
+                    value={formData.observations}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        observations: e.target.value,
+                      })
+                    }
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Notes particulières (marchandise fragile, urgente, etc.)..."
                   />
                 </div>
 

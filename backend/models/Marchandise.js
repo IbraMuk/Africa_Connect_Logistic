@@ -18,6 +18,12 @@ const Marchandise = sequelize.define('Marchandise', {
     allowNull: false,
     comment: 'Description de la marchandise'
   },
+  categoriePrincipale: {
+    type: DataTypes.ENUM('Matière première', 'Semi-fini', 'Fini', 'Spécial'),
+    allowNull: false,
+    defaultValue: 'Fini',
+    comment: 'Catégorie principale de la marchandise'
+  },
   categorieId: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -26,6 +32,11 @@ const Marchandise = sequelize.define('Marchandise', {
       key: 'id'
     },
     comment: 'ID de la catégorie (référence à la table categories)'
+  },
+  codeHS: {
+    type: DataTypes.STRING(10),
+    allowNull: true,
+    comment: 'Code douanier HS (6 à 10 chiffres)'
   },
   poids: {
     type: DataTypes.DECIMAL(10, 2),
@@ -36,6 +47,28 @@ const Marchandise = sequelize.define('Marchandise', {
     type: DataTypes.DECIMAL(10, 3),
     allowNull: false,
     comment: 'Volume en m³'
+  },
+  quantite: {
+    type: DataTypes.DECIMAL(12, 2),
+    allowNull: true,
+    comment: 'Quantité (volume, poids ou nombre d\'unités)'
+  },
+  unite: {
+    type: DataTypes.ENUM('kg', 'tonne', 'm3', 'litre', 'unité', 'carton', 'palette'),
+    allowNull: false,
+    defaultValue: 'kg',
+    comment: 'Unité de mesure'
+  },
+  valeurMarchande: {
+    type: DataTypes.DECIMAL(15, 2),
+    allowNull: true,
+    comment: 'Valeur marchande'
+  },
+  devise: {
+    type: DataTypes.ENUM('USD', 'EUR', 'CDF', 'XAF', 'XOF'),
+    allowNull: false,
+    defaultValue: 'USD',
+    comment: 'Devise de la valeur marchande'
   },
   expediteurId: {
     type: DataTypes.INTEGER,
@@ -68,6 +101,16 @@ const Marchandise = sequelize.define('Marchandise', {
     type: DataTypes.TEXT,
     allowNull: true,
     comment: 'Adresse complète du destinataire'
+  },
+  paysOrigine: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'Pays d\'expédition / production'
+  },
+  paysDestination: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'Pays de livraison / client final'
   },
   villeDepart: {
     type: DataTypes.STRING,
@@ -120,10 +163,30 @@ const Marchandise = sequelize.define('Marchandise', {
     defaultValue: 'Routier',
     comment: 'Type de transport'
   },
+  exigencesReglementaires: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Exigences réglementaires (certificat sanitaire, licence d\'importation, ADR, phytosanitaire, etc.)'
+  },
+  conditionsStockage: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Conditions de stockage (chaîne du froid, entrepôt sec, zone sécurisée)'
+  },
+  documentsAssocies: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Documents associés (facture commerciale, certificat d\'origine, connaissement, assurance)'
+  },
   instructionsSpeciales: {
     type: DataTypes.TEXT,
     allowNull: true,
     comment: 'Instructions spéciales pour la manutention'
+  },
+  observations: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Notes particulières (marchandise fragile, urgente, etc.)'
   },
   valeurDeclaree: {
     type: DataTypes.DECIMAL(12, 2),
@@ -199,6 +262,18 @@ const Marchandise = sequelize.define('Marchandise', {
     },
     {
       fields: ['numeroSuivi']
+    },
+    {
+      fields: ['categoriePrincipale']
+    },
+    {
+      fields: ['codeHS']
+    },
+    {
+      fields: ['paysOrigine']
+    },
+    {
+      fields: ['paysDestination']
     }
   ]
 });

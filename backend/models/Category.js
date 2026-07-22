@@ -18,10 +18,20 @@ const Category = sequelize.define('Category', {
     allowNull: false,
     comment: 'Nom de la catégorie de marchandise'
   },
+  sousCategorie: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Sous-catégorie de la marchandise'
+  },
   description: {
     type: DataTypes.TEXT,
     allowNull: true,
     comment: 'Description détaillée de la catégorie'
+  },
+  codeHS: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Code du Système Harmonisé (douane)'
   }
 }, {
   tableName: 'categories',

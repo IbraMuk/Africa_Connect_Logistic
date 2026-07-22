@@ -1,4 +1,4 @@
-const { Facture, Client } = require('../models/index');
+const { FactureStandard, Client } = require('../models/index');
 const { Op } = require('sequelize');
 const pdfService = require('../services/pdfService');
 
@@ -20,7 +20,7 @@ exports.getAllFactures = async (req, res) => {
       ];
     }
 
-    const { rows: factures, count: total } = await Facture.findAndCountAll({
+    const { rows: factures, count: total } = await FactureStandard.findAndCountAll({
       where: search ? {} : where,
       include: [{
         model: Client,
@@ -43,7 +43,7 @@ exports.getAllFactures = async (req, res) => {
       dateEcheance: f.dateEcheance,
       montant: parseFloat(f.montant),
       statut: f.statut,
-      services: typeof f.services === 'string' ? JSON.parse(f.services) : f.services,
+      services: f.services,
       notes: f.notes,
     }));
 
@@ -63,15 +63,15 @@ exports.getFactureStats = async (req, res) => {
     const { sequelize: db } = require('../config/database');
     const [rows] = await db.query(`
       SELECT
-        COUNT(*) as totalCount,
-        COALESCE(SUM(CAST(montant AS REAL)), 0) as totalMontant,
-        COALESCE(SUM(CASE WHEN statut = 'Payée' THEN CAST(montant AS REAL) ELSE 0 END), 0) as payeesMontant,
-        COALESCE(SUM(CASE WHEN statut = 'En attente' THEN CAST(montant AS REAL) ELSE 0 END), 0) as attenteM,
-        COALESCE(SUM(CASE WHEN statut = 'En retard' THEN CAST(montant AS REAL) ELSE 0 END), 0) as retardM,
-        COUNT(CASE WHEN statut = 'Payée' THEN 1 END) as payeesCount,
-        COUNT(CASE WHEN statut = 'En attente' THEN 1 END) as attenteCount,
-        COUNT(CASE WHEN statut = 'En retard' THEN 1 END) as retardCount
-      FROM factures
+        COUNT(*) as "totalCount",
+        COALESCE(SUM(CAST(montant AS REAL)), 0) as "totalMontant",
+        COALESCE(SUM(CASE WHEN statut = 'Payée' THEN CAST(montant AS REAL) ELSE 0 END), 0) as "payeesMontant",
+        COALESCE(SUM(CASE WHEN statut = 'En attente' THEN CAST(montant AS REAL) ELSE 0 END), 0) as "attenteM",
+        COALESCE(SUM(CASE WHEN statut = 'En retard' THEN CAST(montant AS REAL) ELSE 0 END), 0) as "retardM",
+        COUNT(CASE WHEN statut = 'Payée' THEN 1 END) as "payeesCount",
+        COUNT(CASE WHEN statut = 'En attente' THEN 1 END) as "attenteCount",
+        COUNT(CASE WHEN statut = 'En retard' THEN 1 END) as "retardCount"
+      FROM factures_standard
     `);
     const r = rows[0];
     res.json({
@@ -92,17 +92,14 @@ exports.getFactureStats = async (req, res) => {
 // GET /api/factures/:id
 exports.getFactureById = async (req, res) => {
   try {
-    const facture = await Facture.findByPk(req.params.id, {
+    const facture = await FactureStandard.findByPk(req.params.id, {
       include: [{ model: Client, as: 'client' }],
     });
     if (!facture) return res.status(404).json({ success: false, message: 'Facture non trouvée' });
 
     res.json({
       success: true,
-      data: {
-        ...facture.toJSON(),
-        services: typeof facture.services === 'string' ? JSON.parse(facture.services) : facture.services,
-      },
+      data: facture.toJSON(),
     });
   } catch (error) {
     console.error('getFactureById:', error);
@@ -121,15 +118,15 @@ exports.createFacture = async (req, res) => {
     const montant = services.reduce((sum, s) => sum + (parseFloat(s.quantite) || 0) * (parseFloat(s.prix) || 0), 0);
 
     const year = new Date().getFullYear();
-    const count = await Facture.count();
+    const count = await FactureStandard.count();
     const id = `FAC-${year}-${String(count + 1).padStart(4, '0')}`;
 
-    const facture = await Facture.create({
+    const facture = await FactureStandard.create({
       id,
       clientId,
       dateEcheance,
       montant,
-      services: JSON.stringify(services),
+      services,
       notes: notes || null,
       statut: 'En attente',
     });
@@ -153,7 +150,7 @@ exports.createFacture = async (req, res) => {
 // PUT /api/factures/:id
 exports.updateFacture = async (req, res) => {
   try {
-    const facture = await Facture.findByPk(req.params.id);
+    const facture = await FactureStandard.findByPk(req.params.id);
     if (!facture) return res.status(404).json({ success: false, message: 'Facture non trouvée' });
 
     const { statut, dateEcheance, services, notes } = req.body;
@@ -162,7 +159,7 @@ exports.updateFacture = async (req, res) => {
     if (dateEcheance !== undefined) updates.dateEcheance = dateEcheance;
     if (notes !== undefined) updates.notes = notes;
     if (services !== undefined) {
-      updates.services = JSON.stringify(services);
+      updates.services = services;
       updates.montant = services.reduce((sum, s) => sum + (parseFloat(s.quantite) || 0) * (parseFloat(s.prix) || 0), 0);
     }
 
@@ -177,7 +174,7 @@ exports.updateFacture = async (req, res) => {
 // DELETE /api/factures/:id
 exports.deleteFacture = async (req, res) => {
   try {
-    const facture = await Facture.findByPk(req.params.id);
+    const facture = await FactureStandard.findByPk(req.params.id);
     if (!facture) return res.status(404).json({ success: false, message: 'Facture non trouvée' });
     await facture.destroy();
     res.json({ success: true, message: 'Facture supprimée' });
@@ -190,13 +187,13 @@ exports.deleteFacture = async (req, res) => {
 // GET /api/factures/:id/pdf
 exports.generateFacturePDF = async (req, res) => {
   try {
-    const facture = await Facture.findByPk(req.params.id, {
+    const facture = await FactureStandard.findByPk(req.params.id, {
       include: [{ model: Client, as: 'client' }],
     });
     if (!facture) return res.status(404).json({ success: false, message: 'Facture non trouvée' });
 
     const data = facture.toJSON();
-    data.services = typeof data.services === 'string' ? JSON.parse(data.services) : data.services || [];
+    data.services = data.services || [];
     data.client_nom = data.client?.nom;
     data.client_prenom = data.client?.prenom;
     data.email = data.client?.email;

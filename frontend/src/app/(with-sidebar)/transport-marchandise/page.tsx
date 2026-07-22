@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { 
   MagnifyingGlassIcon,
   PlusIcon,
@@ -14,10 +14,13 @@ import {
   TrashIcon,
   EyeIcon,
   ScaleIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
 import PageHeader from '@/components/PageHeader'
+import merchandiseService from '@/services/marchandiseService'
+import clientService from '@/services/clientService'
 
 export default function TransportMarchandisePage() {
   const [transports, setTransports] = useState<any[]>([])
@@ -27,6 +30,7 @@ export default function TransportMarchandisePage() {
   const [selectedTransport, setSelectedTransport] = useState<any>(null)
   const [formData, setFormData] = useState({
     reference: '',
+    expediteurId: '',
     expediteur: '',
     destinataire: '',
     telephone: '',
@@ -39,120 +43,191 @@ export default function TransportMarchandisePage() {
     poids: '',
     volume: '',
     description: '',
-    typeVehicule: 'camion',
-    statut: 'en_attente',
-    priorite: 'normale'
+    typeVehicule: 'Routier',
+    statut: 'En attente',
+    priorite: 'Normale'
   })
 
-  // Données simulées
-  const mockTransports = [
-    {
-      id: 1,
-      reference: 'TM-2024-001',
-      expediteur: 'Société ABC',
-      destinataire: 'Entreprise XYZ',
-      telephone: '+243812345678',
-      email: 'contact@societeabc.com',
-      depart: 'Kinshasa',
-      arrivee: 'Lubumbashi',
-      date: '2024-01-20',
-      heure: '08:00',
-      typeMarchandise: 'Équipements électroniques',
-      poids: '1500',
-      volume: '5.5',
-      description: 'Ordinateurs et matériel informatique',
-      typeVehicule: 'camion',
-      statut: 'en_cours',
-      priorite: 'normale',
-      chauffeur: 'Jean Kabongo',
-      immatriculation: 'CD-789-AB',
-      coutTransport: 2500
-    },
-    {
-      id: 2,
-      reference: 'TM-2024-002',
-      expediteur: 'Agro RDC',
-      destinataire: 'Market Plus',
-      telephone: '+243823456789',
-      email: 'info@agro-rdc.com',
-      depart: 'Kisangani',
-      arrivee: 'Kinshasa',
-      date: '2024-01-21',
-      heure: '06:00',
-      typeMarchandise: 'Produits agricoles',
-      poids: '3000',
-      volume: '8.2',
-      description: 'Café et cacao en sacs',
-      typeVehicule: 'remorque',
-      statut: 'confirmé',
-      priorite: 'haute',
-      chauffeur: 'Pierre Mbuyi',
-      immatriculation: 'CD-456-CD',
-      coutTransport: 3500
-    },
-    {
-      id: 3,
-      reference: 'TM-2024-003',
-      expediteur: 'Textile Congo',
-      destinataire: 'Fashion Store',
-      telephone: '+243834567890',
-      email: 'contact@textile-congo.cd',
-      depart: 'Bukavu',
-      arrivee: 'Goma',
-      date: '2024-01-22',
-      heure: '09:30',
-      typeMarchandise: 'Vêtements',
-      poids: '800',
-      volume: '3.8',
-      description: 'Vêtements divers en cartons',
-      typeVehicule: 'fourgon',
-      statut: 'en_attente',
-      priorite: 'normale',
-      chauffeur: 'Non assigné',
-      immatriculation: 'Non assigné',
-      coutTransport: 1200
-    }
-  ]
+  const [clients, setClients] = useState<any[]>([])
+  const [loadingClients, setLoadingClients] = useState(false)
+  const [showClientDropdown, setShowClientDropdown] = useState(false)
+  const [clientSearchTerm, setClientSearchTerm] = useState('')
+  const [filteredClients, setFilteredClients] = useState<any[]>([])
+  const clientSearchRef = useRef<HTMLDivElement>(null)
 
+  // Fermer le dropdown quand on clique en dehors
   useEffect(() => {
-    // Simuler le chargement des données
-    setTimeout(() => {
-      setTransports(mockTransports)
-      setLoading(false)
-    }, 1000)
+    const handleClickOutside = (event: MouseEvent) => {
+      if (clientSearchRef.current && !clientSearchRef.current.contains(event.target as Node)) {
+        setShowClientDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Charger les transports depuis l'API
+  const loadTransports = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await merchandiseService.getAllMarchandises({
+        limit: 1000
+      })
+      if (response.success) {
+        const marchandises = response.data.marchandises || []
+        setTransports(marchandises.map((m: any) => ({
+          id: m.id,
+          reference: m.reference,
+          expediteur: m.expediteur_nom ? `${m.expediteur_nom} ${m.expediteur_prenom || ''}`.trim() : (m.expediteur || 'Inconnu'),
+          expediteurId: m.expediteurId,
+          destinataire: m.destinataireNom,
+          telephone: m.destinataireTelephone,
+          email: m.destinataireEmail,
+          depart: m.villeDepart,
+          arrivee: m.villeArrivee,
+          date: m.dateEnvoi,
+          heure: m.heure || '',
+          typeMarchandise: m.designation,
+          poids: m.poids,
+          volume: m.volume,
+          description: m.instructionsSpeciales,
+          typeVehicule: m.typeTransport,
+          statut: m.statut,
+          priorite: m.priorite,
+          coutTransport: m.coutTransport
+        })))
+      } else {
+        toast.error(response.message || 'Erreur lors du chargement')
+      }
+    } catch (error: any) {
+      console.error('Erreur chargement transports:', error)
+      toast.error(error.response?.data?.message || 'Erreur lors du chargement des transports')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Charger les clients pour le sélecteur d'expéditeur
+  const loadClients = useCallback(async () => {
+    try {
+      setLoadingClients(true)
+      const response = await clientService.getAllClients({ limit: 1000 })
+      setClients(response.data.clients || [])
+    } catch (error) {
+      console.error('Erreur chargement clients:', error)
+    } finally {
+      setLoadingClients(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadTransports()
+  }, [loadTransports])
+
+  useEffect(() => {
+    if (showModal) {
+      loadClients()
+    }
+  }, [showModal, loadClients])
+
+  useEffect(() => {
+    const term = clientSearchTerm.toLowerCase()
+    if (!term) {
+      setFilteredClients(clients)
+    } else {
+      setFilteredClients(clients.filter((c: any) => 
+        (c.nom || '').toLowerCase().includes(term) ||
+        (c.prenom || '').toLowerCase().includes(term) ||
+        (c.email || '').toLowerCase().includes(term) ||
+        (c.telephone || '').includes(term)
+      ))
+    }
+  }, [clientSearchTerm, clients])
+
   const filteredTransports = transports.filter(transport =>
-    transport.expediteur.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transport.destinataire.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transport.depart.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transport.arrivee.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transport.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transport.typeMarchandise.toLowerCase().includes(searchTerm.toLowerCase())
+    (transport.expediteur || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (transport.destinataire || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (transport.depart || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (transport.arrivee || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (transport.reference || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (transport.typeMarchandise || '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const mapFormToApiPayload = (data: any) => {
+    const dateLivraison = data.date ? new Date(data.date) : new Date()
+    dateLivraison.setDate(dateLivraison.getDate() + 7)
+
+    return {
+      designation: data.typeMarchandise || data.description || 'Transport marchandise',
+      categoriePrincipale: 'Fini',
+      categorieId: null,
+      codeHS: null,
+      poids: parseFloat(data.poids) || 0,
+      volume: parseFloat(data.volume) || 0,
+      quantite: null,
+      unite: 'kg',
+      valeurMarchande: null,
+      devise: 'USD',
+      expediteurId: parseInt(data.expediteurId) || 0,
+      destinataireNom: data.destinataire,
+      destinataireTelephone: data.telephone,
+      destinataireEmail: data.email || null,
+      destinataireAdresse: data.arrivee || null,
+      paysOrigine: data.depart || null,
+      paysDestination: data.arrivee || null,
+      villeDepart: data.depart,
+      villeArrivee: data.arrivee,
+      adresseRamassage: data.depart || null,
+      adresseLivraison: data.arrivee || null,
+      dateEnvoi: data.date,
+      dateLivraisonPrevue: dateLivraison.toISOString().split('T')[0],
+      priorite: data.priorite || 'Normale',
+      typeTransport: data.typeVehicule || 'Routier',
+      exigencesReglementaires: null,
+      conditionsStockage: null,
+      documentsAssocies: null,
+      instructionsSpeciales: data.description || null,
+      observations: null,
+      valeurDeclaree: null,
+      assurance: false,
+      coutTransport: null,
+      statut: data.statut || 'En attente'
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.expediteur || !formData.destinataire || !formData.depart || !formData.arrivee || !formData.date) {
-      toast.error('Veuillez remplir tous les champs obligatoires')
+    if (!formData.expediteurId || !formData.destinataire || !formData.depart || !formData.arrivee || !formData.date || !formData.poids || !formData.volume) {
+      toast.error('Veuillez remplir tous les champs obligatoires (expéditeur, destinataire, départ, arrivée, date, poids, volume)')
       return
     }
 
-    const newTransport = {
-      id: transports.length + 1,
-      ...formData,
-      reference: `TM-2024-${String(transports.length + 1).padStart(3, '0')}`,
-      chauffeur: 'Non assigné',
-      immatriculation: 'Non assigné',
-      coutTransport: Math.floor(Math.random() * 5000) + 1000
-    }
+    try {
+      const payload = mapFormToApiPayload(formData)
 
-    setTransports([...transports, newTransport])
-    toast.success('Transport créé avec succès')
-    setShowModal(false)
+      if (selectedTransport) {
+        await merchandiseService.updateMarchandise(selectedTransport.id, payload)
+        toast.success('Transport mis à jour avec succès')
+      } else {
+        await merchandiseService.createMarchandise(payload)
+        toast.success('Transport créé avec succès')
+      }
+
+      await loadTransports()
+      setShowModal(false)
+      resetForm()
+    } catch (error: any) {
+      console.error('Erreur soumission transport:', error)
+      toast.error(error.response?.data?.message || error.message || 'Erreur lors de l\'enregistrement')
+    }
+  }
+
+  const resetForm = () => {
+    setSelectedTransport(null)
     setFormData({
       reference: '',
+      expediteurId: '',
       expediteur: '',
       destinataire: '',
       telephone: '',
@@ -165,53 +240,62 @@ export default function TransportMarchandisePage() {
       poids: '',
       volume: '',
       description: '',
-      typeVehicule: 'camion',
-      statut: 'en_attente',
-      priorite: 'normale'
+      typeVehicule: 'Routier',
+      statut: 'En attente',
+      priorite: 'Normale'
     })
+    setClientSearchTerm('')
+    setShowClientDropdown(false)
   }
 
   const handleEdit = (transport: any) => {
     setSelectedTransport(transport)
     setFormData({
-      reference: transport.reference,
-      expediteur: transport.expediteur,
-      destinataire: transport.destinataire,
-      telephone: transport.telephone,
-      email: transport.email,
-      depart: transport.depart,
-      arrivee: transport.arrivee,
-      date: transport.date,
-      heure: transport.heure,
-      typeMarchandise: transport.typeMarchandise,
-      poids: transport.poids,
-      volume: transport.volume,
-      description: transport.description,
-      typeVehicule: transport.typeVehicule,
-      statut: transport.statut,
-      priorite: transport.priorite
+      reference: transport.reference || '',
+      expediteurId: transport.expediteurId ? String(transport.expediteurId) : '',
+      expediteur: transport.expediteur || '',
+      destinataire: transport.destinataire || '',
+      telephone: transport.telephone || '',
+      email: transport.email || '',
+      depart: transport.depart || '',
+      arrivee: transport.arrivee || '',
+      date: transport.date || '',
+      heure: transport.heure || '',
+      typeMarchandise: transport.typeMarchandise || '',
+      poids: transport.poids ? String(transport.poids) : '',
+      volume: transport.volume ? String(transport.volume) : '',
+      description: transport.description || '',
+      typeVehicule: transport.typeVehicule || 'Routier',
+      statut: transport.statut || 'En attente',
+      priorite: transport.priorite || 'Normale'
     })
     setShowModal(true)
   }
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce transport ?')) {
-      setTransports(transports.filter(t => t.id !== id))
-      toast.success('Transport supprimé')
+      try {
+        await merchandiseService.deleteMarchandise(id)
+        await loadTransports()
+        toast.success('Transport supprimé')
+      } catch (error: any) {
+        console.error('Erreur suppression transport:', error)
+        toast.error(error.response?.data?.message || 'Erreur lors de la suppression')
+      }
     }
   }
 
   const getStatutBadge = (statut: string) => {
     switch (statut) {
-      case 'confirmé':
-        return 'bg-green-100 text-green-800'
-      case 'en_attente':
+      case 'En attente':
         return 'bg-yellow-100 text-yellow-800'
-      case 'en_cours':
+      case 'En transit':
         return 'bg-blue-100 text-blue-800'
-      case 'livré':
-        return 'bg-purple-100 text-purple-800'
-      case 'annulé':
+      case 'Livré':
+        return 'bg-green-100 text-green-800'
+      case 'Retardé':
+        return 'bg-orange-100 text-orange-800'
+      case 'Perdu':
         return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
@@ -220,13 +304,13 @@ export default function TransportMarchandisePage() {
 
   const getPrioriteBadge = (priorite: string) => {
     switch (priorite) {
-      case 'urgente':
+      case 'Urgente':
         return 'bg-red-100 text-red-800'
-      case 'haute':
+      case 'Haute':
         return 'bg-orange-100 text-orange-800'
-      case 'normale':
+      case 'Normale':
         return 'bg-gray-100 text-gray-800'
-      case 'basse':
+      case 'Basse':
         return 'bg-blue-100 text-blue-800'
       default:
         return 'bg-gray-100 text-gray-800'
@@ -235,14 +319,14 @@ export default function TransportMarchandisePage() {
 
   const getVehiculeIcon = (type: string) => {
     switch (type) {
-      case 'camion':
+      case 'Routier':
         return '🚚'
-      case 'remorque':
-        return '🚛'
-      case 'fourgon':
-        return '🚐'
-      case 'van':
-        return '🚦'
+      case 'Aérien':
+        return '✈️'
+      case 'Maritime':
+        return '�'
+      case 'Ferroviaire':
+        return '�'
       default:
         return '🚚'
     }
@@ -256,7 +340,10 @@ export default function TransportMarchandisePage() {
         subtitle="Gérez les transports de marchandises"
         action={{
           label: 'Nouveau Transport',
-          onClick: () => setShowModal(true),
+          onClick: () => {
+            resetForm()
+            setShowModal(true)
+          },
           icon: <PlusIcon className="h-4 w-4" />
         }}
       />
@@ -265,8 +352,8 @@ export default function TransportMarchandisePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {[
           { title: 'Total Transports', value: transports.length, icon: TruckIcon, color: 'from-blue-500 to-indigo-600' },
-          { title: 'Confirmés', value: transports.filter(t => t.statut === 'confirmé').length, icon: CheckCircleIcon, color: 'from-emerald-500 to-teal-600' },
-          { title: 'En cours', value: transports.filter(t => t.statut === 'en_cours').length, icon: CubeIcon, color: 'from-amber-500 to-orange-600' },
+          { title: 'En attente', value: transports.filter(t => t.statut === 'En attente').length, icon: CheckCircleIcon, color: 'from-yellow-500 to-amber-600' },
+          { title: 'En transit', value: transports.filter(t => t.statut === 'En transit').length, icon: CubeIcon, color: 'from-amber-500 to-orange-600' },
           { title: 'Poids Total (kg)', value: transports.reduce((total, t) => total + parseFloat(t.poids || 0), 0).toLocaleString(), icon: ScaleIcon, color: 'from-violet-500 to-purple-600' },
         ].map((stat, index) => (
           <div key={index} className="group">
@@ -334,7 +421,14 @@ export default function TransportMarchandisePage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTransports.map((transport) => (
+              {filteredTransports.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                    {loading ? 'Chargement...' : 'Aucun transport trouvé'}
+                  </td>
+                </tr>
+              ) : (
+                filteredTransports.map((transport) => (
                 <tr key={transport.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="text-sm font-medium text-gray-900">{transport.reference}</span>
@@ -368,7 +462,7 @@ export default function TransportMarchandisePage() {
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <p className="text-sm text-gray-900">{new Date(transport.date).toLocaleDateString('fr-FR')}</p>
+                      <p className="text-sm text-gray-900">{transport.date ? new Date(transport.date).toLocaleDateString('fr-FR') : '-'}</p>
                       <p className="text-sm text-gray-500">{transport.heure}</p>
                     </div>
                   </td>
@@ -377,7 +471,7 @@ export default function TransportMarchandisePage() {
                       <span className="text-2xl mr-2">{getVehiculeIcon(transport.typeVehicule)}</span>
                       <div>
                         <p className="text-sm text-gray-900 capitalize">{transport.typeVehicule}</p>
-                        <p className="text-xs text-gray-500">{transport.chauffeur}</p>
+                        {transport.coutTransport && <p className="text-xs text-gray-500">{transport.coutTransport} USD</p>}
                       </div>
                     </div>
                   </td>
@@ -407,7 +501,8 @@ export default function TransportMarchandisePage() {
                     </button>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         )}
@@ -418,7 +513,7 @@ export default function TransportMarchandisePage() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
-                 onClick={() => setShowModal(false)}></div>
+                 onClick={() => { resetForm(); setShowModal(false) }}></div>
             
             <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
@@ -427,7 +522,7 @@ export default function TransportMarchandisePage() {
                     {selectedTransport ? 'Modifier le transport' : 'Nouveau transport'}
                   </h3>
                   <button
-                    onClick={() => setShowModal(false)}
+                    onClick={() => { resetForm(); setShowModal(false) }}
                     className="text-white hover:text-gray-200 transition-colors"
                   >
                     <XMarkIcon className="h-6 w-6" />
@@ -437,15 +532,51 @@ export default function TransportMarchandisePage() {
 
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Expéditeur *</label>
-                    <input
-                      type="text"
-                      value={formData.expediteur}
-                      onChange={(e) => setFormData({ ...formData, expediteur: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Nom de l'expéditeur"
-                    />
+                  <div className="relative" ref={clientSearchRef}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Expéditeur (client) *</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.expediteur}
+                        onChange={(e) => {
+                          setFormData({ ...formData, expediteur: e.target.value, expediteurId: '' })
+                          setClientSearchTerm(e.target.value)
+                          setShowClientDropdown(true)
+                        }}
+                        onFocus={() => setShowClientDropdown(true)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Rechercher un client..."
+                      />
+                      <ChevronDownIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    </div>
+                    {showClientDropdown && (
+                      <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {loadingClients ? (
+                          <div className="p-3 text-sm text-gray-500">Chargement...</div>
+                        ) : filteredClients.length === 0 ? (
+                          <div className="p-3 text-sm text-gray-500">Aucun client trouvé</div>
+                        ) : (
+                          filteredClients.map((client: any) => (
+                            <div
+                              key={client.id}
+                              className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0"
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  expediteurId: String(client.id),
+                                  expediteur: `${client.nom} ${client.prenom || ''}`.trim()
+                                })
+                                setClientSearchTerm('')
+                                setShowClientDropdown(false)
+                              }}
+                            >
+                              <p className="font-medium text-gray-900">{client.nom} {client.prenom}</p>
+                              <p className="text-xs text-gray-500">{client.telephone} {client.email && `• ${client.email}`}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Destinataire *</label>
@@ -526,7 +657,7 @@ export default function TransportMarchandisePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Poids (kg)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Poids (kg) *</label>
                     <input
                       type="number"
                       value={formData.poids}
@@ -536,7 +667,7 @@ export default function TransportMarchandisePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Volume (m³)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Volume (m³) *</label>
                     <input
                       type="number"
                       step="0.1"
@@ -547,16 +678,16 @@ export default function TransportMarchandisePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Type de véhicule</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Type de transport</label>
                     <select
                       value={formData.typeVehicule}
                       onChange={(e) => setFormData({ ...formData, typeVehicule: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="camion">Camion</option>
-                      <option value="remorque">Remorque</option>
-                      <option value="fourgon">Fourgon</option>
-                      <option value="van">Van</option>
+                      <option value="Routier">Routier</option>
+                      <option value="Aérien">Aérien</option>
+                      <option value="Maritime">Maritime</option>
+                      <option value="Ferroviaire">Ferroviaire</option>
                     </select>
                   </div>
                   <div>
@@ -566,11 +697,11 @@ export default function TransportMarchandisePage() {
                       onChange={(e) => setFormData({ ...formData, statut: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="en_attente">En attente</option>
-                      <option value="confirmé">Confirmé</option>
-                      <option value="en_cours">En cours</option>
-                      <option value="livré">Livré</option>
-                      <option value="annulé">Annulé</option>
+                      <option value="En attente">En attente</option>
+                      <option value="En transit">En transit</option>
+                      <option value="Livré">Livré</option>
+                      <option value="Retardé">Retardé</option>
+                      <option value="Perdu">Perdu</option>
                     </select>
                   </div>
                   <div>
@@ -580,10 +711,10 @@ export default function TransportMarchandisePage() {
                       onChange={(e) => setFormData({ ...formData, priorite: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="basse">Basse</option>
-                      <option value="normale">Normale</option>
-                      <option value="haute">Haute</option>
-                      <option value="urgente">Urgente</option>
+                      <option value="Basse">Basse</option>
+                      <option value="Normale">Normale</option>
+                      <option value="Haute">Haute</option>
+                      <option value="Urgente">Urgente</option>
                     </select>
                   </div>
                 </div>
@@ -602,7 +733,7 @@ export default function TransportMarchandisePage() {
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
+                    onClick={() => { resetForm(); setShowModal(false) }}
                     className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                   >
                     Annuler

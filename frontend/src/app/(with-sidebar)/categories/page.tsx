@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   PlusIcon,
   MagnifyingGlassIcon,
   TagIcon,
   PencilIcon,
   TrashIcon,
-  XMarkIcon
+  XMarkIcon,
+  ChevronDownIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
 import PageHeader from '@/components/PageHeader'
@@ -22,8 +24,13 @@ export default function CategoriesPage() {
   const [formData, setFormData] = useState({
     nom: 'Référence générique',
     categorie: '',
-    description: ''
+    sousCategorie: '',
+    description: '',
+    codeHS: ''
   })
+  const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null)
+  const [categoryMarchandises, setCategoryMarchandises] = useState<Record<number, any[]>>({})
+  const [loadingMarchandises, setLoadingMarchandises] = useState<number | null>(null)
 
   // Charger les catégories
   const loadCategories = async () => {
@@ -71,7 +78,7 @@ export default function CategoriesPage() {
         setShowNewModal(false)
         setShowEditModal(false)
         setSelectedCategory(null)
-        setFormData({ nom: 'Référence générique', categorie: '', description: '' })
+        setFormData({ nom: 'Référence générique', categorie: '', sousCategorie: '', description: '', codeHS: '' })
       } else {
         toast.error(data.message || 'Une erreur est survenue')
       }
@@ -108,9 +115,34 @@ export default function CategoriesPage() {
     setFormData({
       nom: category.nom,
       categorie: category.categorie,
-      description: category.description || ''
+      sousCategorie: category.sousCategorie || '',
+      description: category.description || '',
+      codeHS: category.codeHS || ''
     })
     setShowEditModal(true)
+  }
+
+  const toggleExpand = async (category: any) => {
+    if (expandedCategoryId === category.id) {
+      setExpandedCategoryId(null)
+      return
+    }
+    setExpandedCategoryId(category.id)
+    if (!categoryMarchandises[category.id]) {
+      try {
+        setLoadingMarchandises(category.id)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/categories/${category.id}/marchandises`)
+        const data = await response.json()
+        if (data.success) {
+          setCategoryMarchandises(prev => ({ ...prev, [category.id]: data.data }))
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des marchandises:', error)
+        toast.error('Erreur lors du chargement des marchandises')
+      } finally {
+        setLoadingMarchandises(null)
+      }
+    }
   }
 
   const filteredCategories = categories.filter(category =>
@@ -155,11 +187,18 @@ export default function CategoriesPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-3 py-3"></th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Nom
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Catégorie
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Sous-catégorie
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Code HS
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Description
@@ -174,41 +213,103 @@ export default function CategoriesPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredCategories.map((category) => (
-                <tr key={category.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <TagIcon className="h-5 w-5 text-gray-400 mr-3" />
-                      <span className="text-sm font-medium text-gray-900">{category.nom}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900">{category.categorie}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-500 truncate max-w-xs">
-                      {category.description || '-'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {category.nombreMarchandises || 0}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleEdit(category)}
-                      className="text-blue-600 hover:text-blue-900 mr-3"
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(category.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
+                <React.Fragment key={category.id}>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-3 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => toggleExpand(category)}
+                        className="text-gray-400 hover:text-gray-600"
+                        title="Voir les marchandises"
+                      >
+                        {expandedCategoryId === category.id ? (
+                          <ChevronDownIcon className="h-4 w-4" />
+                        ) : (
+                          <ChevronRightIcon className="h-4 w-4" />
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <TagIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span className="text-sm font-medium text-gray-900">{category.nom}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-900">{category.categorie}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-500">{category.sousCategorie || '-'}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-500">{category.codeHS || '-'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-gray-500 truncate max-w-xs">
+                        {category.description || '-'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => toggleExpand(category)}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
+                      >
+                        {category.nombreMarchandises || 0}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => handleEdit(category)}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(category.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedCategoryId === category.id && (
+                    <tr className="bg-gray-50">
+                      <td colSpan={8} className="px-6 py-4">
+                        {loadingMarchandises === category.id ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                          </div>
+                        ) : (categoryMarchandises[category.id]?.length || 0) === 0 ? (
+                          <p className="text-sm text-gray-500 italic">Aucune marchandise dans cette catégorie</p>
+                        ) : (
+                          <table className="min-w-full">
+                            <thead>
+                              <tr className="text-xs font-medium text-gray-500 uppercase">
+                                <th className="px-3 py-2 text-left">Référence</th>
+                                <th className="px-3 py-2 text-left">Désignation</th>
+                                <th className="px-3 py-2 text-left">Quantité</th>
+                                <th className="px-3 py-2 text-left">Poids</th>
+                                <th className="px-3 py-2 text-left">Volume</th>
+                                <th className="px-3 py-2 text-left">Statut</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {categoryMarchandises[category.id].map((m: any) => (
+                                <tr key={m.id}>
+                                  <td className="px-3 py-2 text-sm text-gray-900">{m.reference}</td>
+                                  <td className="px-3 py-2 text-sm text-gray-900">{m.designation}</td>
+                                  <td className="px-3 py-2 text-sm text-gray-500">{m.quantite} {m.unite}</td>
+                                  <td className="px-3 py-2 text-sm text-gray-500">{m.poids} kg</td>
+                                  <td className="px-3 py-2 text-sm text-gray-500">{m.volume} m³</td>
+                                  <td className="px-3 py-2 text-sm text-gray-500">{m.statut}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
@@ -270,6 +371,32 @@ export default function CategoriesPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Ex: Produits agricoles & agroalimentaires"
                     required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sous-catégorie
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.sousCategorie}
+                    onChange={(e) => setFormData({ ...formData, sousCategorie: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ex: Céréales"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Code HS
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.codeHS}
+                    onChange={(e) => setFormData({ ...formData, codeHS: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ex: 09"
                   />
                 </div>
 

@@ -4,7 +4,6 @@ services:
     runtime: node
     region: frankfurt
     plan: free
-    branch: master
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start
@@ -13,6 +12,8 @@ services:
         value: production
       - key: PORT
         value: 5000
+      - key: DATABASE_URL
+        sync: false
       - key: DB_HOST
         sync: false
       - key: DB_PORT
@@ -26,9 +27,24 @@ services:
       - key: DB_SSL
         value: "true"
       - key: FRONTEND_URL
-        sync: false
+        value: https://africa-connect-logistic-frontend.onrender.com
       - key: JWT_SECRET
         generateValue: true
       - key: SEQUELIZE_LOGGING
         value: "false"
+    healthCheckPath: /
+
+  - type: web
+    name: africa-connect-logistic-frontend
+    runtime: node
+    region: frankfurt
+    plan: free
+    rootDir: frontend
+    buildCommand: npm run build
+    startCommand: npx next start -H 0.0.0.0 -p $PORT
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://africa-connect-logistic-backend.onrender.com/api
     healthCheckPath: /

@@ -68,9 +68,15 @@ export default function FacturationPage() {
   const [loadingClients, setLoadingClients] = useState(false);
 
   // Formulaire de nouvelle facture
+  const getDefaultDateEcheance = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split("T")[0];
+  };
+
   const [newFacture, setNewFacture] = useState({
     clientId: 0,
-    dateEcheance: "",
+    dateEcheance: getDefaultDateEcheance(),
     services: [{ description: "", quantite: 1, prix: 0 }],
     notes: "",
   });
@@ -225,6 +231,11 @@ export default function FacturationPage() {
       return;
     }
 
+    if (!newFacture.dateEcheance) {
+      alert("Veuillez sélectionner une date d'échéance");
+      return;
+    }
+
     // Calculer le montant total
     const total = newFacture.services.reduce(
       (sum, service) => sum + service.quantite * service.prix,
@@ -251,27 +262,34 @@ export default function FacturationPage() {
       const response = await factureService.createFacture(factureData);
 
       if (response.success) {
-        // Générer et télécharger le PDF
-        await factureService.downloadPDF(response.data.id, response.data.id);
-
-        // Recharger les factures
+        // Recharger les factures et fermer le modal avant le PDF
         await loadFactures();
-
-        // Fermer le modal et réinitialiser
         setShowNewFactureModal(false);
         setSelectedClient(null);
         setNewFacture({
           clientId: 0,
-          dateEcheance: "",
+          dateEcheance: getDefaultDateEcheance(),
           services: [{ description: "", quantite: 1, prix: 0 }],
           notes: "",
         });
 
-        // Afficher un message de succès
         setSuccessMessage(
-          "Facture créée avec succès ! Le PDF a été téléchargé.",
+          "Facture créée avec succès !",
         );
         setTimeout(() => setSuccessMessage(null), 5000);
+
+        // Générer et télécharger le PDF en arrière-plan (non bloquant)
+        try {
+          await factureService.downloadPDF(response.data.id, response.data.id);
+        } catch (pdfError: any) {
+          console.error("Erreur lors du téléchargement du PDF:", pdfError);
+          setSuccessMessage(
+            "Facture créée avec succès, mais le téléchargement du PDF a échoué.",
+          );
+          setTimeout(() => setSuccessMessage(null), 5000);
+        }
+      } else {
+        alert(response.message || "Erreur lors de la création de la facture");
       }
     } catch (error: any) {
       console.error("Erreur lors de la création de la facture:", error);
@@ -350,7 +368,17 @@ export default function FacturationPage() {
         subtitle="Création et suivi des factures clients"
         action={{
           label: 'Nouvelle Facture',
-          onClick: () => setShowNewFactureModal(true),
+          onClick: () => {
+            setSelectedClient(null);
+            setClientSearchTerm("");
+            setNewFacture({
+              clientId: 0,
+              dateEcheance: getDefaultDateEcheance(),
+              services: [{ description: "", quantite: 1, prix: 0 }],
+              notes: "",
+            });
+            setShowNewFactureModal(true);
+          },
           icon: <PlusIcon className="h-4 w-4" />
         }}
       />
@@ -715,12 +743,14 @@ export default function FacturationPage() {
                     </label>
                     <input
                       type="date"
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900"
+                      value={new Date().toISOString().split("T")[0]}
+                      readOnly
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-500 bg-gray-100 cursor-not-allowed"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
-                      Date Échéance
+                      Date Échéance <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"

@@ -29,6 +29,7 @@ const validateCategory = (req, res, next) => {
 
 // Routes
 router.get('/', categoryController.getAllCategories);
+router.get('/:id/marchandises', categoryController.getMarchandisesByCategory);
 router.get('/:id', categoryController.getCategoryById);
 router.post('/', validateCategory, categoryController.createCategory);
 router.put('/:id', validateCategory, categoryController.updateCategory);

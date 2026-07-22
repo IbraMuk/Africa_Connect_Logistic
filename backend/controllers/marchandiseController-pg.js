@@ -15,8 +15,8 @@ exports.getAllMarchandises = async (req, res) => {
              c.email as expediteur_email, c.telephone as expediteur_telephone,
              cat.nom as categorie_nom
       FROM marchandises m
-      LEFT JOIN clients c ON m.expediteurId = c.id
-      LEFT JOIN categories cat ON m.categorieId = cat.id
+      LEFT JOIN clients c ON m."expediteurId" = c.id
+      LEFT JOIN categories cat ON m."categorieId" = cat.id
       WHERE 1=1
     `;
     const params = [];
@@ -25,7 +25,7 @@ exports.getAllMarchandises = async (req, res) => {
     // Ajouter la recherche
     if (search) {
       query += ` AND (m.reference ILIKE $${paramIndex} OR m.designation ILIKE $${paramIndex} OR 
-                 m.destinataireNom ILIKE $${paramIndex} OR c.nom ILIKE $${paramIndex} OR c.prenom ILIKE $${paramIndex})`;
+                 m."destinataireNom" ILIKE $${paramIndex} OR c.nom ILIKE $${paramIndex} OR c.prenom ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
     }
@@ -39,7 +39,7 @@ exports.getAllMarchandises = async (req, res) => {
 
     // Ajouter le filtre d'expéditeur
     if (expediteurId) {
-      query += ` AND m.expediteurId = $${paramIndex}`;
+      query += ` AND m."expediteurId" = $${paramIndex}`;
       params.push(expediteurId);
       paramIndex++;
     }
@@ -52,12 +52,12 @@ exports.getAllMarchandises = async (req, res) => {
     }
 
     // Ajouter l'ordre et la pagination
-    query += ` ORDER BY m.dateEnvoi DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    query += ` ORDER BY m."dateEnvoi" DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limitNum, offset);
 
     // Exécuter la requête principale
     const result = await sequelize.query(query, {
-      replacements: params,
+      bind: params,
       type: sequelize.QueryTypes.SELECT
     });
 
@@ -68,7 +68,7 @@ exports.getAllMarchandises = async (req, res) => {
 
     if (search) {
       countQuery += ` AND (m.reference ILIKE $${countParamIndex} OR m.designation ILIKE $${countParamIndex} OR 
-                      m.destinataireNom ILIKE $${countParamIndex})`;
+                      m."destinataireNom" ILIKE $${countParamIndex})`;
       countParams.push(`%${search}%`);
       countParamIndex++;
     }
@@ -80,7 +80,7 @@ exports.getAllMarchandises = async (req, res) => {
     }
 
     if (expediteurId) {
-      countQuery += ` AND m.expediteurId = $${countParamIndex}`;
+      countQuery += ` AND m."expediteurId" = $${countParamIndex}`;
       countParams.push(expediteurId);
       countParamIndex++;
     }
@@ -92,7 +92,7 @@ exports.getAllMarchandises = async (req, res) => {
     }
 
     const countResult = await sequelize.query(countQuery, {
-      replacements: countParams,
+      bind: countParams,
       type: sequelize.QueryTypes.SELECT
     });
 
@@ -129,13 +129,13 @@ exports.getMarchandiseById = async (req, res) => {
              c.adresse as expediteur_adresse,
              cat.nom as categorie_nom
       FROM marchandises m
-      LEFT JOIN clients c ON m.expediteurId = c.id
-      LEFT JOIN categories cat ON m.categorieId = cat.id
+      LEFT JOIN clients c ON m."expediteurId" = c.id
+      LEFT JOIN categories cat ON m."categorieId" = cat.id
       WHERE m.id = $1
     `;
 
     const result = await sequelize.query(query, {
-      replacements: [id],
+      bind: [id],
       type: sequelize.QueryTypes.SELECT
     });
 
@@ -165,14 +165,22 @@ exports.createMarchandise = async (req, res) => {
   try {
     const {
       designation,
+      categoriePrincipale,
       categorieId,
+      codeHS,
       poids,
       volume,
+      quantite,
+      unite,
+      valeurMarchande,
+      devise,
       expediteurId,
       destinataireNom,
       destinataireTelephone,
       destinataireEmail,
       destinataireAdresse,
+      paysOrigine,
+      paysDestination,
       villeDepart,
       villeArrivee,
       adresseRamassage,
@@ -181,7 +189,11 @@ exports.createMarchandise = async (req, res) => {
       dateLivraisonPrevue,
       priorite,
       typeTransport,
+      exigencesReglementaires,
+      conditionsStockage,
+      documentsAssocies,
       instructionsSpeciales,
+      observations,
       valeurDeclaree,
       assurance,
       coutTransport
@@ -190,9 +202,9 @@ exports.createMarchandise = async (req, res) => {
     // Générer une référence unique
     const year = new Date().getFullYear();
     const countResult = await sequelize.query(
-      'SELECT COUNT(*) as count FROM marchandises WHERE EXTRACT(YEAR FROM dateEnvoi) = $1',
+      'SELECT COUNT(*) as count FROM marchandises WHERE EXTRACT(YEAR FROM "dateEnvoi") = $1',
       {
-        replacements: [year],
+        bind: [year],
         type: sequelize.QueryTypes.SELECT
       }
     );
@@ -204,26 +216,29 @@ exports.createMarchandise = async (req, res) => {
 
     const query = `
       INSERT INTO marchandises (
-        reference, designation, categorieId, poids, volume, expediteurId,
-        destinataireNom, destinataireTelephone, destinataireEmail, destinataireAdresse,
-        villeDepart, villeArrivee, adresseRamassage, adresseLivraison,
-        dateEnvoi, dateLivraisonPrevue, priorite, typeTransport,
-        instructionsSpeciales, valeurDeclaree, assurance, numeroSuivi,
-        coutTransport, createdById
+        reference, designation, "categoriePrincipale", "categorieId", "codeHS",
+        poids, volume, quantite, unite, "valeurMarchande", devise,
+        "expediteurId", "destinataireNom", "destinataireTelephone", "destinataireEmail", "destinataireAdresse",
+        "paysOrigine", "paysDestination", "villeDepart", "villeArrivee", "adresseRamassage", "adresseLivraison",
+        "dateEnvoi", "dateLivraisonPrevue", priorite, "typeTransport",
+        "exigencesReglementaires", "conditionsStockage", "documentsAssocies",
+        "instructionsSpeciales", observations, "valeurDeclaree", assurance, "numeroSuivi",
+        "coutTransport", "createdById", statut
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-        $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37
       ) RETURNING *
     `;
 
     const result = await sequelize.query(query, {
-      replacements: [
-        reference, designation, categorieId, poids, volume, expediteurId,
-        destinataireNom, destinataireTelephone, destinataireEmail, destinataireAdresse,
-        villeDepart, villeArrivee, adresseRamassage, adresseLivraison,
-        dateEnvoi, dateLivraisonPrevue, priorite, typeTransport,
-        instructionsSpeciales, valeurDeclaree, assurance, numeroSuivi,
-        coutTransport, req.user?.id || null
+      bind: [
+        reference, designation, categoriePrincipale || 'Fini', categorieId ?? null, codeHS ?? null,
+        poids, volume, quantite ?? null, unite || 'kg', valeurMarchande ?? null, devise || 'USD',
+        expediteurId, destinataireNom, destinataireTelephone, destinataireEmail ?? null, destinataireAdresse ?? null,
+        paysOrigine ?? null, paysDestination ?? null, villeDepart ?? null, villeArrivee ?? null, adresseRamassage ?? null, adresseLivraison ?? null,
+        dateEnvoi, dateLivraisonPrevue ?? null, priorite ?? 'Normale', typeTransport ?? 'Routier',
+        exigencesReglementaires ?? null, conditionsStockage ?? null, documentsAssocies ?? null,
+        instructionsSpeciales ?? null, observations ?? null, valeurDeclaree ?? null, assurance ?? false, numeroSuivi,
+        coutTransport ?? null, req.user?.id ?? null, req.body.statut || 'En attente'
       ],
       type: sequelize.QueryTypes.INSERT
     });
@@ -282,7 +297,7 @@ exports.updateMarchandise = async (req, res) => {
     `;
 
     const result = await sequelize.query(query, {
-      replacements: updateValues,
+      bind: updateValues,
       type: sequelize.QueryTypes.UPDATE
     });
 
@@ -316,7 +331,7 @@ exports.deleteMarchandise = async (req, res) => {
     const query = 'DELETE FROM marchandises WHERE id = $1 RETURNING *';
     
     const result = await sequelize.query(query, {
-      replacements: [id],
+      bind: [id],
       type: sequelize.QueryTypes.DELETE
     });
 
@@ -348,7 +363,7 @@ exports.updateStatut = async (req, res) => {
     const { id } = req.params;
     const { statut, dateLivraisonReelle, chauffeurId, vehiculeId } = req.body;
 
-    const updateFields = ['statut'];
+    const updateFields = ['statut = $1'];
     const updateValues = [statut];
     let paramIndex = 2;
 
@@ -375,12 +390,12 @@ exports.updateStatut = async (req, res) => {
     const query = `
       UPDATE marchandises 
       SET ${updateFields.join(', ')}
-      WHERE id = $1
+      WHERE id = $${paramIndex}
       RETURNING *
     `;
 
     const result = await sequelize.query(query, {
-      replacements: updateValues,
+      bind: updateValues,
       type: sequelize.QueryTypes.UPDATE
     });
 
@@ -416,10 +431,10 @@ exports.getMarchandiseStats = async (req, res) => {
       livre: 'SELECT COUNT(*) as count FROM marchandises WHERE statut = \'Livré\'',
       retarde: 'SELECT COUNT(*) as count FROM marchandises WHERE statut = \'Retardé\'',
       perdu: 'SELECT COUNT(*) as count FROM marchandises WHERE statut = \'Perdu\'',
-      ceMois: 'SELECT COUNT(*) as count FROM marchandises WHERE EXTRACT(MONTH FROM dateEnvoi) = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM dateEnvoi) = EXTRACT(YEAR FROM CURRENT_DATE)',
+      ceMois: 'SELECT COUNT(*) as count FROM marchandises WHERE EXTRACT(MONTH FROM "dateEnvoi") = EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM "dateEnvoi") = EXTRACT(YEAR FROM CURRENT_DATE)',
       poidsTotal: 'SELECT SUM(poids) as total FROM marchandises WHERE statut IN (\'En transit\', \'Livré\')',
       volumeTotal: 'SELECT SUM(volume) as total FROM marchandises WHERE statut IN (\'En transit\', \'Livré\')',
-      revenuTotal: 'SELECT SUM(coutTransport) as total FROM marchandises WHERE "reglementStatut" = \'Payé\''
+      revenuTotal: 'SELECT SUM("coutTransport") as total FROM marchandises WHERE "reglementStatut" = \'Payé\''
     };
 
     const results = await Promise.all(
@@ -430,7 +445,7 @@ exports.getMarchandiseStats = async (req, res) => {
 
     // Statistiques par catégorie
     const categorieQuery = `
-      SELECT m."categorieId", cat.nom as categorie_nom, COUNT(*) as count, SUM(poids) as poidsTotal, SUM(coutTransport) as revenuTotal
+      SELECT m."categorieId", cat.nom as categorie_nom, COUNT(*) as count, SUM(poids) as "poidsTotal", SUM(m."coutTransport") as "revenuTotal"
       FROM marchandises m
       LEFT JOIN categories cat ON m."categorieId" = cat.id
       GROUP BY m."categorieId", cat.nom

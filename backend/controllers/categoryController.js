@@ -6,8 +6,8 @@ exports.getAllCategories = async (req, res) => {
     const query = `
       SELECT c.*, COUNT(m.id) as nombreMarchandises
       FROM categories c
-      LEFT JOIN marchandises m ON c.id = m.categorieId
-      GROUP BY c.id, c.nom, c.categorie, c.description
+      LEFT JOIN marchandises m ON c.id = m."categorieId"
+      GROUP BY c.id, c.nom, c.categorie, c."sousCategorie", c.description, c."codeHS"
       ORDER BY c.categorie ASC
     `;
 
@@ -37,9 +37,9 @@ exports.getCategoryById = async (req, res) => {
     const query = `
       SELECT c.*, COUNT(m.id) as nombreMarchandises
       FROM categories c
-      LEFT JOIN marchandises m ON c.id = m.categorieId
-      WHERE c.id = $1
-      GROUP BY c.id, c.nom, c.categorie, c.description
+      LEFT JOIN marchandises m ON c.id = m."categorieId"
+      WHERE c.id = ?
+      GROUP BY c.id, c.nom, c.categorie, c."sousCategorie", c.description, c."codeHS"
     `;
 
     const result = await sequelize.query(query, {
@@ -68,19 +68,50 @@ exports.getCategoryById = async (req, res) => {
   }
 };
 
+// Obtenir les marchandises d'une catégorie
+exports.getMarchandisesByCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const query = `
+      SELECT m.id, m.reference, m.designation, m.quantite, m.unite, m.poids, m.volume, m.statut
+      FROM marchandises m
+      WHERE m."categorieId" = ?
+      ORDER BY m."dateEnvoi" DESC
+    `;
+
+    const result = await sequelize.query(query, {
+      replacements: [id],
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération des marchandises:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des marchandises',
+      error: error.message
+    });
+  }
+};
+
 // Créer une nouvelle catégorie
 exports.createCategory = async (req, res) => {
   try {
-    const { nom, categorie, description } = req.body;
+    const { nom, categorie, sousCategorie, description, codeHS } = req.body;
 
     const query = `
-      INSERT INTO categories (nom, categorie, description)
-      VALUES ($1, $2, $3)
+      INSERT INTO categories (nom, categorie, "sousCategorie", description, "codeHS")
+      VALUES (?, ?, ?, ?, ?)
       RETURNING *
     `;
 
     const result = await sequelize.query(query, {
-      replacements: [nom, categorie, description],
+      replacements: [nom, categorie, sousCategorie || null, description, codeHS || null],
       type: sequelize.QueryTypes.INSERT
     });
 
@@ -103,17 +134,17 @@ exports.createCategory = async (req, res) => {
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nom, categorie, description } = req.body;
+    const { nom, categorie, sousCategorie, description, codeHS } = req.body;
 
     const query = `
       UPDATE categories 
-      SET nom = $1, categorie = $2, description = $3
-      WHERE id = $4
+      SET nom = ?, categorie = ?, "sousCategorie" = ?, description = ?, "codeHS" = ?
+      WHERE id = ?
       RETURNING *
     `;
 
     const result = await sequelize.query(query, {
-      replacements: [nom, categorie, description, id],
+      replacements: [nom, categorie, sousCategorie || null, description, codeHS || null, id],
       type: sequelize.QueryTypes.UPDATE
     });
 
@@ -145,7 +176,7 @@ exports.deleteCategory = async (req, res) => {
     const { id } = req.params;
 
     // Vérifier si des marchandises utilisent cette catégorie
-    const checkQuery = 'SELECT COUNT(*) as count FROM marchandises WHERE categorieId = $1';
+    const checkQuery = 'SELECT COUNT(*) as count FROM marchandises WHERE "categorieId" = ?';
     const checkResult = await sequelize.query(checkQuery, {
       replacements: [id],
       type: sequelize.QueryTypes.SELECT
@@ -158,7 +189,7 @@ exports.deleteCategory = async (req, res) => {
       });
     }
 
-    const query = 'DELETE FROM categories WHERE id = $1 RETURNING *';
+    const query = 'DELETE FROM categories WHERE id = ? RETURNING *';
     
     const result = await sequelize.query(query, {
       replacements: [id],

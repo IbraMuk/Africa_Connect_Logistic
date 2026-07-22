@@ -1,5 +1,74 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
+const { sequelize } = require('../config/database');
+const { Facture, FactureMarchandise } = require('../models');
+
+// Créer et enregistrer une facture
+exports.createFacture = async (req, res) => {
+  try {
+    const factureData = req.body;
+    
+    // Démarrer une transaction
+    const transaction = await sequelize.transaction();
+    
+    try {
+      // Créer la facture
+      const facture = await Facture.create({
+        numeroFacture: factureData.numeroFacture,
+        typeOperation: factureData.typeOperation,
+        dateFacture: factureData.dateFacture,
+        dateEcheance: factureData.dateEcheance || null,
+        clientNom: factureData.clientNom,
+        clientEmail: factureData.clientEmail || null,
+        clientTelephone: factureData.clientTelephone || null,
+        clientAdresse: factureData.clientAdresse || null,
+        instructions: factureData.instructions || null,
+        totalHT: factureData.totalHT,
+        totalTVA: factureData.totalTVA,
+        totalTTC: factureData.totalTTC,
+        totalPoids: factureData.totalPoids || null,
+        totalVolume: factureData.totalVolume || null,
+        statut: 'en_attente'
+      }, { transaction });
+      
+      // Créer les lignes de marchandises
+      for (const marchandise of factureData.marchandises) {
+        await FactureMarchandise.create({
+          factureId: facture.id,
+          marchandiseId: marchandise.id || null,
+          reference: marchandise.reference || null,
+          designation: marchandise.designation,
+          categorie: marchandise.categorie_nom || null,
+          quantite: marchandise.quantite,
+          poids: marchandise.poids,
+          volume: marchandise.volume,
+          prixUnitaire: marchandise.prixUnitaire,
+          montantTotal: marchandise.montantTotal
+        }, { transaction });
+      }
+      
+      // Valider la transaction
+      await transaction.commit();
+      
+      res.status(201).json({
+        success: true,
+        message: 'Facture créée et enregistrée avec succès',
+        data: facture
+      });
+    } catch (error) {
+      // Annuler la transaction en cas d'erreur
+      await transaction.rollback();
+      throw error;
+    }
+  } catch (error) {
+    console.error('Erreur lors de la création de la facture:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la création de la facture',
+      error: error.message
+    });
+  }
+};
 
 // Générer une facture PDF pour import/export
 exports.generateFacturePDF = async (req, res) => {
@@ -44,6 +113,151 @@ exports.generateFacturePDF = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la génération du PDF',
+      error: error.message
+    });
+  }
+};
+
+// Créer et générer une facture PDF en une seule opération
+exports.createAndGenerateFacture = async (req, res) => {
+  try {
+    const factureData = req.body;
+    
+    // Démarrer une transaction
+    const transaction = await sequelize.transaction();
+    
+    try {
+      // Créer la facture
+      const facture = await Facture.create({
+        numeroFacture: factureData.numeroFacture,
+        typeOperation: factureData.typeOperation,
+        dateFacture: factureData.dateFacture,
+        dateEcheance: factureData.dateEcheance || null,
+        clientNom: factureData.clientNom,
+        clientEmail: factureData.clientEmail || null,
+        clientTelephone: factureData.clientTelephone || null,
+        clientAdresse: factureData.clientAdresse || null,
+        instructions: factureData.instructions || null,
+        totalHT: factureData.totalHT,
+        totalTVA: factureData.totalTVA,
+        totalTTC: factureData.totalTTC,
+        totalPoids: factureData.totalPoids || null,
+        totalVolume: factureData.totalVolume || null,
+        statut: 'en_attente'
+      }, { transaction });
+      
+      // Créer les lignes de marchandises
+      for (const marchandise of factureData.marchandises) {
+        await FactureMarchandise.create({
+          factureId: facture.id,
+          marchandiseId: marchandise.id || null,
+          reference: marchandise.reference || null,
+          designation: marchandise.designation,
+          categorie: marchandise.categorie_nom || null,
+          quantite: marchandise.quantite,
+          poids: marchandise.poids,
+          volume: marchandise.volume,
+          prixUnitaire: marchandise.prixUnitaire,
+          montantTotal: marchandise.montantTotal
+        }, { transaction });
+      }
+      
+      // Valider la transaction
+      await transaction.commit();
+      
+      // Générer le PDF
+      const html = generateFactureHTML(factureData);
+      
+      const browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '20mm',
+          right: '15mm',
+          bottom: '20mm',
+          left: '15mm'
+        }
+      });
+      
+      await browser.close();
+      
+      // Envoyer le PDF
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Facture-${factureData.numeroFacture}.pdf"`);
+      res.send(pdfBuffer);
+      
+    } catch (error) {
+      // Annuler la transaction en cas d'erreur
+      await transaction.rollback();
+      throw error;
+    }
+  } catch (error) {
+    console.error('Erreur lors de la création et génération de la facture:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la création et génération de la facture',
+      error: error.message
+    });
+  }
+};
+
+// Obtenir toutes les factures
+exports.getAllFactures = async (req, res) => {
+  try {
+    const factures = await Facture.findAll({
+      order: [['dateCreation', 'DESC']]
+    });
+    
+    res.json({
+      success: true,
+      data: factures
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération des factures:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des factures',
+      error: error.message
+    });
+  }
+};
+
+// Obtenir une facture par ID avec ses marchandises
+exports.getFactureById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const facture = await Facture.findByPk(id, {
+      include: [{
+        model: FactureMarchandise,
+        as: 'marchandises'
+      }]
+    });
+    
+    if (!facture) {
+      return res.status(404).json({
+        success: false,
+        message: 'Facture non trouvée'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: facture
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération de la facture:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération de la facture',
       error: error.message
     });
   }

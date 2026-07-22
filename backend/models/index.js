@@ -2,6 +2,8 @@ const { sequelize } = require("../config/database");
 const User = require("./User");
 const Client = require("./Client");
 const Facture = require("./Facture");
+const FactureMarchandise = require("./FactureMarchandise");
+const FactureStandard = require("./FactureStandard");
 const Category = require("./Category");
 const TransportPersonnel = require("./TransportPersonnel");
 const TransportMarchandise = require("./TransportMarchandise");
@@ -74,15 +76,21 @@ Billet.belongsTo(User, { foreignKey: "clientId", as: "client" });
 User.hasMany(ImportExport, { foreignKey: "clientId", as: "importExports" });
 ImportExport.belongsTo(User, { foreignKey: "clientId", as: "client" });
 
-// Associations Facture <-> Client
-Client.hasMany(Facture, { foreignKey: "clientId", as: "factures" });
-Facture.belongsTo(Client, { foreignKey: "clientId", as: "client" });
+// Associations Facture <-> FactureMarchandise (factures import/export)
+Facture.hasMany(FactureMarchandise, { foreignKey: "factureId", as: "marchandises" });
+FactureMarchandise.belongsTo(Facture, { foreignKey: "factureId", as: "facture" });
+
+// Associations FactureStandard <-> Client (factures classiques par client)
+Client.hasMany(FactureStandard, { foreignKey: "clientId", as: "facturesStandard" });
+FactureStandard.belongsTo(Client, { foreignKey: "clientId", as: "client" });
 
 module.exports = {
   sequelize,
   User,
   Client,
   Facture,
+  FactureMarchandise,
+  FactureStandard,
   Category,
   TransportPersonnel,
   TransportMarchandise,

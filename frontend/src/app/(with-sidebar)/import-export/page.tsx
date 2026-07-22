@@ -149,8 +149,8 @@ export default function ImportExportPage() {
         return;
       }
 
-      // Préparation des données pour le PDF
-      const pdfData = {
+      // Préparation des données pour le PDF et l'enregistrement
+      const facturePayload = {
         ...factureData,
         totalHT: calculerTotal(),
         totalTVA: calculerTotal() * 0.18, // TVA 18%
@@ -160,15 +160,15 @@ export default function ImportExportPage() {
         dateGeneration: new Date().toLocaleString("fr-FR"),
       };
 
-      // Appel à l'API pour générer le PDF
+      // Appel à l'API pour créer et générer le PDF en une seule opération
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/factures/generate-pdf`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/factures/import-export/create-and-generate`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(pdfData),
+          body: JSON.stringify(facturePayload),
         },
       );
 
@@ -183,7 +183,7 @@ export default function ImportExportPage() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
-        toast.success("PDF généré avec succès");
+        toast.success("Facture enregistrée et PDF généré avec succès");
         setShowFactureModal(false);
         // Réinitialiser
         setSelectedMarchandises([]);
@@ -195,8 +195,12 @@ export default function ImportExportPage() {
           clientAdresse: "",
           marchandises: [],
         });
+        // Générer nouveau numéro de facture
+        const num = `FAC-IMP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`;
+        setFactureData((prev) => ({ ...prev, numeroFacture: num }));
       } else {
-        toast.error("Erreur lors de la génération du PDF");
+        const errorData = await response.json();
+        toast.error(errorData.message || "Erreur lors de la création de la facture");
       }
     } catch (error) {
       console.error("Erreur:", error);

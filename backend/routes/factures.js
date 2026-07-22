@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const factureController = require('../controllers/factureController');
+const factureImportExportController = require('../controllers/factureImportExportController');
 
 const validateFacture = (req, res, next) => {
   const { clientId, dateEcheance, services } = req.body;
@@ -15,6 +16,14 @@ const validateFacture = (req, res, next) => {
   next();
 };
 
+// Routes pour les factures import/export (doivent précéder les routes génériques /:id)
+router.post('/import-export/create', factureImportExportController.createFacture);
+router.post('/import-export/generate-pdf', factureImportExportController.generateFacturePDF);
+router.post('/import-export/create-and-generate', factureImportExportController.createAndGenerateFacture);
+router.get('/import-export/all', factureImportExportController.getAllFactures);
+router.get('/import-export/:id', factureImportExportController.getFactureById);
+
+// Routes pour les factures standards
 router.get('/stats', factureController.getFactureStats);
 router.get('/:id/pdf', factureController.generateFacturePDF);
 router.get('/:id', factureController.getFactureById);
