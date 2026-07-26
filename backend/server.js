@@ -96,6 +96,11 @@ async function startServer() {
     await sequelize.authenticate();
     console.log("✓ Connexion à la base de données établie");
 
+    // Démarrer immédiatement le serveur pour que Render détecte le port
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`✓ Serveur démarré sur le port ${PORT}`);
+    });
+
     // Créer la table clients si elle n'existe pas (avant factures pour la clé étrangère)
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS "clients" (
@@ -404,11 +409,6 @@ async function startServer() {
     `);
 
     console.log("✓ Tables vérifiées");
-
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`✓ Serveur démarré sur le port ${PORT}`);
-      console.log(`  API disponible à http://localhost:${PORT}`);
-    });
   } catch (error) {
     console.error("Impossible de démarrer le serveur:", error);
     process.exit(1);
