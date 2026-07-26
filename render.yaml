@@ -25,24 +25,9 @@ services:
       - key: DB_SSL
         value: "true"
       - key: FRONTEND_URL
-        value: https://africa-connect-logistic-frontend.onrender.com
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: SEQUELIZE_LOGGING
         value: "false"
-    healthCheckPath: /
-
-  - type: web
-    name: africa-connect-logistic-frontend
-    runtime: node
-    region: frankfurt
-    plan: free
-    rootDir: frontend
-    buildCommand: npm run build
-    startCommand: npx next start -H 0.0.0.0 -p $PORT
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        value: https://africa-connect-logistic-backend.onrender.com/api
     healthCheckPath: /
