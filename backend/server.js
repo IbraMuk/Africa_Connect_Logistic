@@ -27,10 +27,17 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const allowedOrigins = [process.env.FRONTEND_URL, "http://localhost:3000"]
+  .filter(Boolean)
+  .map((o) => o.replace(/\/$/, ""));
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL
-    ? [process.env.FRONTEND_URL, "http://localhost:3000"]
-    : "*",
+  origin: (origin, callback) => {
+    if (!origin || !process.env.FRONTEND_URL || allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+      return callback(null, true);
+    }
+    callback(new Error("Not allowed by CORS"));
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
