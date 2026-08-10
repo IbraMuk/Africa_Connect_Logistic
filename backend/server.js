@@ -119,8 +119,8 @@ async function startServer() {
         "adresse" TEXT,
         "ville" VARCHAR(255),
         "pays" VARCHAR(255),
-        "type" VARCHAR(20) NOT NULL DEFAULT 'particulier' CHECK ("type" IN ('particulier','entreprise','gouvernement','autre')),
-        "statut" VARCHAR(20) NOT NULL DEFAULT 'actif' CHECK ("statut" IN ('actif','inactif','suspendu')),
+        "type" VARCHAR(20) NOT NULL DEFAULT 'Particulier' CHECK ("type" IN ('Particulier','Entreprise')),
+        "statut" VARCHAR(20) NOT NULL DEFAULT 'Actif' CHECK ("statut" IN ('Actif','Inactif')),
         "dateInscription" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
