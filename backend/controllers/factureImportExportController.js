@@ -81,13 +81,13 @@ exports.generateFacturePDF = async (req, res) => {
     // Lancer Puppeteer
     const browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--single-process']
     });
     
     const page = await browser.newPage();
     
     // Définir le contenu HTML
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
     
     // Générer le PDF
     const pdfBuffer = await page.pdf({
@@ -170,11 +170,11 @@ exports.createAndGenerateFacture = async (req, res) => {
       
       const browser = await puppeteer.launch({
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--single-process']
       });
       
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
       
       const pdfBuffer = await page.pdf({
         format: 'A4',

@@ -30,11 +30,11 @@ class PDFService {
     try {
       const browser = await puppeteer.launch({
         headless: "new",
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--allow-file-access-from-files", "--disable-web-security"],
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--single-process", "--allow-file-access-from-files", "--disable-web-security"],
       });
       const page = await browser.newPage();
       const html = this.generateFactureHTML(facture);
-      await page.setContent(html, { waitUntil: "networkidle0" });
+      await page.setContent(html, { waitUntil: "load", timeout: 60000 });
       const pdfBuffer = await page.pdf({
         format: "A4",
         printBackground: true,
