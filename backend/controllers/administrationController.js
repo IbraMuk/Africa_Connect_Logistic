@@ -1,4 +1,5 @@
-const { User, Role, Permission, RolePermission } = require('../models');
+const { User, Role, Permission, RolePermission, AuditLog } = require('../models');
+const { logAction } = require('../utils/auditLogger');
 
 // ===================== USERS =====================
 
@@ -33,6 +34,7 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Nom, prénom, email et mot de passe sont obligatoires' });
     }
     const user = await User.create({ nom, prenom, email, password, telephone, role: role || 'client', statut: statut || 'actif' });
+    await logAction({ action: 'CREATE_USER', entity: 'user', entityId: user.id, details: { email: user.email, role: user.role }, req });
     res.status(201).json({ success: true, message: 'Utilisateur créé avec succès', data: user });
   } catch (error) {
     console.error('Erreur createUser:', error);
@@ -54,6 +56,7 @@ exports.updateUser = async (req, res) => {
     if (password) user.password = password;
     await user.save();
     const updated = await User.findByPk(user.id, { attributes: { exclude: ['password'] } });
+    await logAction({ action: 'UPDATE_USER', entity: 'user', entityId: user.id, details: { email: updated.email, role: updated.role, statut: updated.statut }, req });
     res.json({ success: true, message: 'Utilisateur mis à jour avec succès', data: updated });
   } catch (error) {
     console.error('Erreur updateUser:', error);
@@ -65,7 +68,10 @@ exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+    const userId = user.id;
+    const userEmail = user.email;
     await user.destroy();
+    await logAction({ action: 'DELETE_USER', entity: 'user', entityId: userId, details: { email: userEmail }, req });
     res.json({ success: true, message: 'Utilisateur supprimé avec succès' });
   } catch (error) {
     console.error('Erreur deleteUser:', error);
@@ -104,6 +110,7 @@ exports.createRole = async (req, res) => {
     const { nom, description } = req.body;
     if (!nom) return res.status(400).json({ success: false, message: 'Le nom du rôle est obligatoire' });
     const role = await Role.create({ nom, description });
+    await logAction({ action: 'CREATE_ROLE', entity: 'role', entityId: role.id, details: { nom: role.nom }, req });
     res.status(201).json({ success: true, message: 'Rôle créé avec succès', data: role });
   } catch (error) {
     console.error('Erreur createRole:', error);
@@ -120,6 +127,7 @@ exports.updateRole = async (req, res) => {
     if (description !== undefined) role.description = description;
     if (statut !== undefined) role.statut = statut;
     await role.save();
+    await logAction({ action: 'UPDATE_ROLE', entity: 'role', entityId: role.id, details: { nom: role.nom, statut: role.statut }, req });
     res.json({ success: true, message: 'Rôle mis à jour avec succès', data: role });
   } catch (error) {
     console.error('Erreur updateRole:', error);
@@ -131,7 +139,10 @@ exports.deleteRole = async (req, res) => {
   try {
     const role = await Role.findByPk(req.params.id);
     if (!role) return res.status(404).json({ success: false, message: 'Rôle non trouvé' });
+    const roleId = role.id;
+    const roleNom = role.nom;
     await role.destroy();
+    await logAction({ action: 'DELETE_ROLE', entity: 'role', entityId: roleId, details: { nom: roleNom }, req });
     res.json({ success: true, message: 'Rôle supprimé avec succès' });
   } catch (error) {
     console.error('Erreur deleteRole:', error);
@@ -156,6 +167,7 @@ exports.createPermission = async (req, res) => {
     const { nom, code, description } = req.body;
     if (!nom || !code) return res.status(400).json({ success: false, message: 'Le nom et le code de la permission sont obligatoires' });
     const permission = await Permission.create({ nom, code, description });
+    await logAction({ action: 'CREATE_PERMISSION', entity: 'permission', entityId: permission.id, details: { nom: permission.nom, code: permission.code }, req });
     res.status(201).json({ success: true, message: 'Permission créée avec succès', data: permission });
   } catch (error) {
     console.error('Erreur createPermission:', error);
@@ -172,6 +184,7 @@ exports.updatePermission = async (req, res) => {
     if (code !== undefined) permission.code = code;
     if (description !== undefined) permission.description = description;
     await permission.save();
+    await logAction({ action: 'UPDATE_PERMISSION', entity: 'permission', entityId: permission.id, details: { nom: permission.nom, code: permission.code }, req });
     res.json({ success: true, message: 'Permission mise à jour avec succès', data: permission });
   } catch (error) {
     console.error('Erreur updatePermission:', error);
@@ -183,7 +196,10 @@ exports.deletePermission = async (req, res) => {
   try {
     const permission = await Permission.findByPk(req.params.id);
     if (!permission) return res.status(404).json({ success: false, message: 'Permission non trouvée' });
+    const permissionId = permission.id;
+    const permissionNom = permission.nom;
     await permission.destroy();
+    await logAction({ action: 'DELETE_PERMISSION', entity: 'permission', entityId: permissionId, details: { nom: permissionNom }, req });
     res.json({ success: true, message: 'Permission supprimée avec succès' });
   } catch (error) {
     console.error('Erreur deletePermission:', error);
@@ -210,6 +226,7 @@ exports.assignPermission = async (req, res) => {
     if (!permissionId) return res.status(400).json({ success: false, message: 'L\'identifiant de la permission est obligatoire' });
     await RolePermission.findOrCreate({ where: { roleId: req.params.id, permissionId } });
     const role = await Role.findByPk(req.params.id, { include: [{ model: Permission, as: 'permissions' }] });
+    await logAction({ action: 'ASSIGN_PERMISSION', entity: 'role', entityId: role.id, details: { permissionId }, req });
     res.json({ success: true, message: 'Permission assignée avec succès', data: role });
   } catch (error) {
     console.error('Erreur assignPermission:', error);
@@ -223,9 +240,28 @@ exports.removePermission = async (req, res) => {
     if (!permissionId) return res.status(400).json({ success: false, message: 'L\'identifiant de la permission est obligatoire' });
     await RolePermission.destroy({ where: { roleId: req.params.id, permissionId } });
     const role = await Role.findByPk(req.params.id, { include: [{ model: Permission, as: 'permissions' }] });
+    await logAction({ action: 'REMOVE_PERMISSION', entity: 'role', entityId: role.id, details: { permissionId }, req });
     res.json({ success: true, message: 'Permission retirée avec succès', data: role });
   } catch (error) {
     console.error('Erreur removePermission:', error);
     res.status(500).json({ success: false, message: 'Erreur lors du retrait de la permission', error: error.message });
   }
 };
+
+// ===================== AUDIT LOGS =====================
+
+exports.getAuditLogs = async (req, res) => {
+  try {
+    const { limit = 200 } = req.query;
+    const logs = await AuditLog.findAll({
+      include: [{ model: User, as: 'user', attributes: ['id', 'nom', 'prenom', 'email'] }],
+      order: [['dateCreation', 'DESC']],
+      limit: Math.min(parseInt(limit, 10) || 200, 1000),
+    });
+    res.json({ success: true, data: logs });
+  } catch (error) {
+    console.error('Erreur getAuditLogs:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la récupération des logs', error: error.message });
+  }
+};
+

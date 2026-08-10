@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const { logAction } = require('../utils/auditLogger');
 const Joi = require('joi');
 
 // Schémas de validation
@@ -48,6 +49,8 @@ const register = async (req, res) => {
 
     // Créer l'utilisateur
     const user = await User.create(value);
+    
+    await logAction({ action: 'USER_REGISTER', entity: 'user', entityId: user.id, details: { email: user.email, role: user.role }, req });
     
     // Générer le token
     const token = generateToken(user.id);
@@ -107,6 +110,8 @@ const login = async (req, res) => {
 
     // Générer le token
     const token = generateToken(user.id);
+    
+    await logAction({ action: 'USER_LOGIN', entity: 'user', entityId: user.id, details: { email: user.email, role: user.role }, req });
     
     res.json({
       message: 'Connexion réussie',

@@ -6,6 +6,7 @@ import {
   KeyIcon,
   ShieldCheckIcon,
   UsersIcon,
+  ClipboardDocumentListIcon,
   PencilIcon,
   TrashIcon,
   PlusIcon,
@@ -13,7 +14,7 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-type Tab = "users" | "roles" | "permissions";
+type Tab = "users" | "roles" | "permissions" | "audit";
 
 export default function AdministrationPage() {
   const [activeTab, setActiveTab] = useState<Tab>("users");
@@ -48,17 +49,22 @@ export default function AdministrationPage() {
   });
   const [permissionToAssign, setPermissionToAssign] = useState<number | "">("");
 
+  // Audit
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [u, r, p] = await Promise.all([
+      const [u, r, p, a] = await Promise.all([
         fetch(`${API_URL}/admin/users`).then((res) => res.json()),
         fetch(`${API_URL}/admin/roles`).then((res) => res.json()),
         fetch(`${API_URL}/admin/permissions`).then((res) => res.json()),
+        fetch(`${API_URL}/admin/audit-logs`).then((res) => res.json()),
       ]);
       if (u.success) setUsers(u.data || []);
       if (r.success) setRoles(r.data || []);
       if (p.success) setPermissions(p.data || []);
+      if (a.success) setAuditLogs(a.data || []);
     } catch (error) {
       console.error("Erreur chargement admin:", error);
       toast.error("Erreur lors du chargement des données");
@@ -118,8 +124,8 @@ export default function AdministrationPage() {
       toast.error("Mot de passe obligatoire pour la création");
       return;
     }
-    const body = { ...userForm };
-    if (editingUser && !body.password) delete body.password;
+    const { password, ...rest } = userForm;
+    const body = editingUser ? rest : { ...userForm };
 
     const result = editingUser
       ? await apiPut(`/admin/users/${editingUser.id}`, body)
@@ -284,6 +290,7 @@ export default function AdministrationPage() {
     { id: "users" as Tab, label: "Utilisateurs", icon: UsersIcon },
     { id: "roles" as Tab, label: "Rôles", icon: ShieldCheckIcon },
     { id: "permissions" as Tab, label: "Permissions", icon: KeyIcon },
+    { id: "audit" as Tab, label: "Journal d'audit", icon: ClipboardDocumentListIcon },
   ];
 
   return (
@@ -654,6 +661,42 @@ export default function AdministrationPage() {
                         </button>
                       </div>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===== AUDIT TAB ===== */}
+      {activeTab === "audit" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entité</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Détails</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Utilisateur</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {auditLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                      {new Date(log.dateCreation).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">{log.action}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{log.entity} {log.entityId ? `#${log.entityId}` : ""}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{log.details || "—"}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {log.user ? `${log.user.prenom} ${log.user.nom}` : "Système"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{log.ipAddress || "—"}</td>
                   </tr>
                 ))}
               </tbody>

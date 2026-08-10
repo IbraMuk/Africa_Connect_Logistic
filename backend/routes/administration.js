@@ -27,4 +27,7 @@ router.get('/roles/:id/permissions', adminController.getRolePermissions);
 router.post('/roles/:id/permissions', adminController.assignPermission);
 router.delete('/roles/:id/permissions', adminController.removePermission);
 
+// Journal d'audit
+router.get('/audit-logs', adminController.getAuditLogs);
+
 module.exports = router;
