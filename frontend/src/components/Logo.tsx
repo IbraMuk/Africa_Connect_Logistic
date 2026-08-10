@@ -7,6 +7,7 @@ interface LogoProps {
   size?: number;
   showText?: boolean;
   textClassName?: string;
+  subTitleClassName?: string;
   subTitle?: React.ReactNode;
   className?: string;
 }
@@ -15,6 +16,7 @@ export default function Logo({
   size = 48,
   showText = true,
   textClassName = "",
+  subTitleClassName = "",
   subTitle,
   className = "",
 }: LogoProps) {
@@ -53,16 +55,16 @@ export default function Logo({
         {showText && (
           <div>
             <h1
-              className={`text-xl font-bold text-gray-900 dark:text-white ${textClassName}`}
+              className={`text-xl font-bold ${textClassName || "text-gray-900 dark:text-white"}`}
             >
               Africa Connect
             </h1>
             {subTitle !== undefined ? (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className={`text-xs ${subTitleClassName || "text-gray-500 dark:text-gray-400"}`}>
                 {subTitle}
               </p>
             ) : (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className={`text-xs ${subTitleClassName || "text-gray-500 dark:text-gray-400"}`}>
                 Logistic
               </p>
             )}
@@ -91,16 +93,16 @@ export default function Logo({
       {showText && (
         <div>
           <h1
-            className={`text-2xl font-bold text-gray-900 dark:text-white ${textClassName}`}
+            className={`text-2xl font-bold ${textClassName || "text-gray-900 dark:text-white"}`}
           >
             Africa Connect
           </h1>
           {subTitle !== undefined ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className={`text-sm ${subTitleClassName || "text-gray-500 dark:text-gray-400"}`}>
               {subTitle}
             </p>
           ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400">Logistic</p>
+            <p className={`text-sm ${subTitleClassName || "text-gray-500 dark:text-gray-400"}`}>Logistic</p>
           )}
         </div>
       )}

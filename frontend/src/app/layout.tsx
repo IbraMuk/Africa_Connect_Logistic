@@ -18,7 +18,7 @@ const poppins = Poppins({
 })
 
 export async function generateMetadata(): Promise<Metadata> {
-  const h = headers()
+  const h = await headers()
   const host = h.get('host') || 'localhost:3000'
   const proto = h.get('x-forwarded-proto') || (host.startsWith('localhost') ? 'http' : 'https')
   const baseUrl = `${proto}://${host}`

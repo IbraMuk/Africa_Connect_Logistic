@@ -1,11 +1,11 @@
 "use client";
 
-import AdminDropdown from "@/components/AdminDropdown";
 import ThemeSelector from "@/components/ThemeSelector";
 import { useAuth } from "@/hooks/useAuth";
 import {
     ArrowRightOnRectangleIcon,
     BanknotesIcon,
+    Bars3Icon,
     BellIcon,
     BoltIcon,
     CalendarIcon,
@@ -50,8 +50,9 @@ export default function SharedLayout({
   currentPage?: string;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const router = useRouter();
 
   const menuItems: MenuItem[] = [
@@ -212,61 +213,69 @@ export default function SharedLayout({
 
   return (
     <div className="h-screen flex bg-gray-100 dark:bg-gray-900">
+      {/* Overlay mobile */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <div
-        className={`${sidebarOpen ? "w-64" : "w-20"} bg-white border-r border-gray-100 transition-all duration-300 ease-in-out flex flex-col shadow-lg shadow-gray-200/50`}
+        className={`fixed inset-y-0 left-0 z-50 lg:static lg:z-auto w-64 ${sidebarOpen ? "lg:w-64" : "lg:w-20"} transform transition-transform lg:transition-[width] duration-300 ease-in-out ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 bg-gradient-to-b from-[#0a1f44] via-[#0d2a5e] to-[#0a1f44] border-r border-blue-900/40 flex flex-col shadow-2xl shadow-blue-950/40`}
       >
         {/* Sidebar Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
+        <div className="relative h-16 flex items-center justify-between px-4 border-b border-blue-800/40 flex-shrink-0">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400" />
           <div
-            className={`flex items-center ${!sidebarOpen && "justify-center"}`}
+            className={`flex items-center min-w-0 ${!sidebarOpen && "justify-center w-full"}`}
           >
-            <Logo size={44} showText={sidebarOpen} />
+            <Logo
+              size={38}
+              showText={sidebarOpen}
+              textClassName="text-white"
+              subTitle={null}
+            />
           </div>
+          {/* Fermer le menu mobile */}
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="p-1.5 rounded-lg hover:bg-blue-800/50 transition-colors flex-shrink-0 lg:hidden"
+          >
+            <XMarkIcon className="h-4 w-4 text-blue-300" />
+          </button>
+          {/* Réduire/étendre le menu (desktop uniquement) */}
+          {sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="hidden lg:block p-1.5 rounded-lg hover:bg-blue-800/50 transition-colors flex-shrink-0"
+            >
+              <XMarkIcon className="h-4 w-4 text-blue-300" />
+            </button>
+          )}
+        </div>
+        {!sidebarOpen && (
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="hidden lg:block mx-auto mt-2 p-1.5 rounded-lg hover:bg-blue-800/50 transition-colors flex-shrink-0"
           >
-            <XMarkIcon
-              className={`h-4 w-4 text-gray-400 transition-transform ${sidebarOpen ? "" : "rotate-180"}`}
-            />
+            <XMarkIcon className="h-4 w-4 text-blue-300 rotate-180" />
           </button>
-        </div>
-
-        {/* User Info */}
-        <div className="px-4 py-4 border-b border-gray-100">
-          <div
-            className={`flex items-center ${!sidebarOpen && "justify-center"}`}
-          >
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-sm">
-                {user?.prenom?.[0] || "U"}
-              </span>
-            </div>
-            {sidebarOpen && (
-              <div className="ml-3">
-                <p className="text-sm font-bold text-gray-900">
-                  {user ? `${user.prenom} ${user.nom}` : "Utilisateur"}
-                </p>
-                <p className="text-xs text-gray-400 capitalize">
-                  {user?.role || "Client"}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
           {menuItems.map((item, index) => (
             <div key={index}>
               {!item.children ? (
                 <Link
                   href={item.href || "#"}
+                  onClick={() => setMobileOpen(false)}
                   className={`flex items-center justify-between px-3 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 ${
                     item.current
-                      ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-sm"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-blue-500/20 text-blue-100 shadow-sm shadow-blue-500/20"
+                      : "text-blue-200/70 hover:bg-blue-800/40 hover:text-white"
                   }`}
                 >
                   <div className="flex items-center">
@@ -274,7 +283,7 @@ export default function SharedLayout({
                     {sidebarOpen && <span className="ml-3">{item.title}</span>}
                   </div>
                   {sidebarOpen && item.badge && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                    <span className="px-2 py-0.5 text-xs font-medium bg-blue-800/60 text-blue-300 rounded-full">
                       {item.badge}
                     </span>
                   )}
@@ -285,8 +294,8 @@ export default function SharedLayout({
                     onClick={() => toggleMenu(item.title)}
                     className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                       expandedMenus.includes(item.title)
-                        ? "bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white"
-                        : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        ? "bg-blue-900/40 text-blue-100"
+                        : "text-blue-200/70 hover:bg-blue-800/40 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center">
@@ -312,14 +321,14 @@ export default function SharedLayout({
                           {!child.children ? (
                             <Link
                               href={child.href || "#"}
-                              className="flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+                              className="flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors text-blue-300/60 hover:text-blue-100 hover:bg-blue-800/30"
                             >
                               <div className="flex items-center">
                                 <child.icon className="h-4 w-4 flex-shrink-0" />
                                 <span className="ml-3">{child.title}</span>
                               </div>
                               {child.badge && (
-                                <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
+                                <span className="px-2 py-0.5 text-xs font-medium bg-blue-800/60 text-blue-300 rounded-full">
                                   {child.badge}
                                 </span>
                               )}
@@ -328,7 +337,7 @@ export default function SharedLayout({
                             <div>
                               <button
                                 onClick={() => toggleMenu(child.title)}
-                                className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+                                className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors text-blue-300/60 hover:text-blue-100 hover:bg-blue-800/30"
                               >
                                 <div className="flex items-center">
                                   <child.icon className="h-4 w-4 flex-shrink-0" />
@@ -350,7 +359,7 @@ export default function SharedLayout({
                                         <Link
                                           key={subChildIndex}
                                           href={subChild.href || "#"}
-                                          className="flex items-center px-3 py-2 text-sm rounded-lg transition-colors text-gray-500 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-500 dark:hover:text-white dark:hover:bg-gray-700"
+                                          className="flex items-center px-3 py-2 text-sm rounded-lg transition-colors text-blue-400/50 hover:text-blue-100 hover:bg-blue-800/25"
                                         >
                                           <subChild.icon className="h-4 w-4 flex-shrink-0" />
                                           <span className="ml-3">
@@ -374,9 +383,9 @@ export default function SharedLayout({
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-t border-blue-800/40 bg-[#081936]/70">
           {sidebarOpen && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 text-center mb-3">
+            <div className="text-xs text-blue-300/50 text-center mb-3">
               <p>Africa Connect System</p>
               <p>Version 1.1</p>
               <p>Développeur: Andy Mukonde</p>
@@ -385,7 +394,7 @@ export default function SharedLayout({
           )}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+            className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-red-400 rounded-lg hover:bg-red-500/10 hover:text-red-300 transition-colors"
           >
             <ArrowRightOnRectangleIcon className="h-5 w-5 flex-shrink-0" />
             {sidebarOpen && <span className="ml-3">Déconnexion</span>}
@@ -396,22 +405,26 @@ export default function SharedLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header - Modern */}
-        <header className="h-16 bg-white/80 backdrop-blur-xl border-b border-gray-100 flex items-center justify-between px-6 z-10">
-          <div className="flex items-center flex-1">
-            <div className="max-w-lg w-full lg:max-w-sm">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Rechercher..."
-                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/80 text-gray-900 placeholder-gray-400 transition-all hover:bg-white"
-                />
-                <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              </div>
-            </div>
+        <header className="relative h-16 bg-white/90 backdrop-blur-xl border-b border-gray-200 flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 z-10 shadow-sm">
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-600" />
+
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800 flex-shrink-0"
+          >
+            <Bars3Icon className="h-5 w-5" />
+          </button>
+
+          <div className="relative w-full max-w-xs hidden sm:block">
+            <input
+              type="text"
+              placeholder="Rechercher..."
+              className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/80 text-gray-900 placeholder-gray-400 transition-all hover:bg-white"
+            />
+            <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
 
-          <div className="flex items-center space-x-3">
-            <AdminDropdown />
+          <div className="flex items-center space-x-2 flex-shrink-0">
             <ThemeSelector />
             <button className="relative p-2.5 rounded-xl hover:bg-gray-100 transition-colors">
               <BellIcon className="h-5 w-5 text-gray-500" />
@@ -421,8 +434,8 @@ export default function SharedLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50/50 to-blue-50/30">
-          <div className="p-6 max-w-7xl mx-auto">{children}</div>
+        <main className="flex-1 overflow-y-auto bg-slate-50">
+          <div className="p-3 sm:p-6">{children}</div>
         </main>
       </div>
     </div>

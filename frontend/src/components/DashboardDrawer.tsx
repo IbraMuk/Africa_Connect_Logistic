@@ -206,15 +206,15 @@ export default function DashboardDrawerFixed({
       depth === 0
         ? `relative w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 group ${
             active
-              ? "bg-blue-600/15 text-blue-300 shadow-sm shadow-blue-500/10"
+              ? "bg-blue-500/20 text-blue-100 shadow-sm shadow-blue-500/20"
               : parentActive || isExpanded
-                ? "bg-slate-800 text-slate-200"
-                : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/70"
+                ? "bg-blue-900/40 text-blue-100"
+                : "text-blue-200/70 hover:text-white hover:bg-blue-800/40"
           }`
         : `w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all duration-150 ${
             active
-              ? "bg-blue-600/10 text-blue-300"
-              : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"
+              ? "bg-blue-500/15 text-blue-100"
+              : "text-blue-300/60 hover:text-blue-100 hover:bg-blue-800/30"
           }`;
 
     return (
@@ -228,7 +228,7 @@ export default function DashboardDrawerFixed({
           className={baseClass}
         >
           {active && depth === 0 && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-400 rounded-r-full" />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-cyan-400 rounded-r-full" />
           )}
           <div className="flex items-center space-x-3 min-w-0">
             <item.icon
@@ -241,8 +241,8 @@ export default function DashboardDrawerFixed({
               <span
                 className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
                   active
-                    ? "bg-blue-500/20 text-blue-300"
-                    : item.badgeColor || "bg-slate-700 text-slate-400"
+                    ? "bg-blue-400/25 text-blue-100"
+                    : item.badgeColor || "bg-blue-800/60 text-blue-300"
                 }`}
               >
                 {item.badge}
@@ -262,8 +262,8 @@ export default function DashboardDrawerFixed({
           <div
             className={`mt-1 space-y-0.5 ${
               depth === 0
-                ? "ml-4 pl-3 border-l border-slate-700/50"
-                : "ml-3 pl-2 border-l border-slate-700/30"
+                ? "ml-4 pl-3 border-l border-blue-700/40"
+                : "ml-3 pl-2 border-l border-blue-700/25"
             }`}
           >
             {item.children.map((child) => renderMenuItem(child, depth + 1))}
@@ -275,37 +275,37 @@ export default function DashboardDrawerFixed({
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 border-r border-slate-700/50 transform ${
+      className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-[#0a1f44] via-[#0d2a5e] to-[#0a1f44] border-r border-blue-900/40 transform ${
         isOpen ? "translate-x-0" : "-translate-x-full"
-      } transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col`}
+      } transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col shadow-2xl shadow-blue-950/40`}
     >
       {/* Logo Header */}
-      <div className="flex items-center justify-between h-16 px-5 border-b border-slate-700/50 flex-shrink-0">
+      <div className="flex items-center justify-between h-16 px-5 border-b border-blue-800/40 flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25 flex-shrink-0">
+          <div className="w-9 h-9 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40 flex-shrink-0">
             <TruckIcon className="h-5 w-5 text-white" />
           </div>
           <div>
             <p className="text-sm font-bold text-white leading-tight">
               Africa Connect
             </p>
-            <p className="text-xs text-slate-400 leading-tight">
+            <p className="text-xs text-blue-300/70 leading-tight">
               Logistic Platform
             </p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors lg:hidden"
+          className="p-1.5 rounded-lg hover:bg-blue-800/50 text-blue-300 hover:text-white transition-colors lg:hidden"
         >
           <XMarkIcon className="h-5 w-5" />
         </button>
       </div>
 
       {/* User Profile */}
-      <div className="px-4 py-4 border-b border-slate-700/50 flex-shrink-0">
-        <div className="flex items-center space-x-3 p-3 rounded-xl bg-slate-800/60 border border-slate-700/40">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-500/20">
+      <div className="px-4 py-4 border-b border-blue-800/40 flex-shrink-0">
+        <div className="flex items-center space-x-3 p-3 rounded-xl bg-blue-900/30 border border-blue-800/30">
+          <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-900/30">
             <span className="text-white text-sm font-bold">
               {getUserInitials()}
             </span>
@@ -316,15 +316,15 @@ export default function DashboardDrawerFixed({
             </p>
             <div className="flex items-center space-x-1.5 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-              <p className="text-xs text-slate-400 truncate">{getRoleLabel()}</p>
+              <p className="text-xs text-blue-300/70 truncate">{getRoleLabel()}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-3 scrollbar-thin scrollbar-track-slate-900 scrollbar-thumb-slate-700">
-        <p className="px-3 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-widest">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-blue-800">
+        <p className="px-3 pb-2 text-xs font-semibold text-blue-400/60 uppercase tracking-widest">
           Navigation
         </p>
         <nav className="space-y-0.5">
@@ -335,10 +335,10 @@ export default function DashboardDrawerFixed({
       </div>
 
       {/* Bottom Actions */}
-      <div className="border-t border-slate-700/50 bg-slate-950/60 p-3 flex-shrink-0 space-y-1">
+      <div className="border-t border-blue-800/40 bg-[#081936]/70 p-3 flex-shrink-0 space-y-1">
         <button
           onClick={() => handleNavigation("/notifications")}
-          className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-xl transition-all text-slate-400 hover:text-slate-100 hover:bg-slate-800/70"
+          className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-xl transition-all text-blue-200/70 hover:text-white hover:bg-blue-800/40"
         >
           <div className="flex items-center space-x-3">
             <BellIcon className="h-5 w-5 flex-shrink-0" />
