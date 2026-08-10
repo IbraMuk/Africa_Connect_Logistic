@@ -3,6 +3,19 @@ const path = require('path');
 const { sequelize } = require('../config/database');
 const { Facture, FactureMarchandise } = require('../models');
 
+// Génère un numéro de facture garanti unique (évite les collisions du générateur aléatoire côté client)
+const generateUniqueNumeroFacture = async (transaction) => {
+  const year = new Date().getFullYear();
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const suffix = Math.floor(100000 + Math.random() * 900000); // 6 chiffres
+    const candidate = `FAC-IMP-${year}-${suffix}`;
+    const exists = await Facture.findOne({ where: { numeroFacture: candidate }, transaction });
+    if (!exists) return candidate;
+  }
+  // Dernier recours : horodatage complet (quasi impossible d'entrer en collision)
+  return `FAC-IMP-${year}-${Date.now()}`;
+};
+
 // Créer et enregistrer une facture
 exports.createFacture = async (req, res) => {
   try {
@@ -12,9 +25,10 @@ exports.createFacture = async (req, res) => {
     const transaction = await sequelize.transaction();
     
     try {
+      const numeroFacture = await generateUniqueNumeroFacture(transaction);
       // Créer la facture
       const facture = await Facture.create({
-        numeroFacture: factureData.numeroFacture,
+        numeroFacture,
         typeOperation: factureData.typeOperation,
         dateFacture: factureData.dateFacture,
         dateEcheance: factureData.dateEcheance || null,
@@ -57,7 +71,9 @@ exports.createFacture = async (req, res) => {
       });
     } catch (error) {
       // Annuler la transaction en cas d'erreur
-      await transaction.rollback();
+      if (!transaction.finished) {
+        await transaction.rollback();
+      }
       throw error;
     }
   } catch (error) {
@@ -127,9 +143,11 @@ exports.createAndGenerateFacture = async (req, res) => {
     const transaction = await sequelize.transaction();
     
     try {
+      const numeroFacture = await generateUniqueNumeroFacture(transaction);
+      factureData.numeroFacture = numeroFacture;
       // Créer la facture
       const facture = await Facture.create({
-        numeroFacture: factureData.numeroFacture,
+        numeroFacture,
         typeOperation: factureData.typeOperation,
         dateFacture: factureData.dateFacture,
         dateEcheance: factureData.dateEcheance || null,
