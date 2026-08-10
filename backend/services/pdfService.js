@@ -30,7 +30,7 @@ class PDFService {
     try {
       const browser = await puppeteer.launch({
         headless: "new",
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--allow-file-access-from-files", "--disable-web-security"],
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--allow-file-access-from-files", "--disable-web-security"],
       });
       const page = await browser.newPage();
       const html = this.generateFactureHTML(facture);
