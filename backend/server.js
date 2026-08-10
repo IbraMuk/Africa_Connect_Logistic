@@ -420,6 +420,10 @@ async function startServer() {
     // Synchroniser les modèles Sequelize (crée les tables manquantes sans supprimer les données)
     await sequelize.sync({ force: false });
 
+    // Initialiser les rôles et permissions par défaut
+    const { seedRolesAndPermissions } = require("./seed/admin-roles-permissions");
+    await seedRolesAndPermissions();
+
     console.log("✓ Tables vérifiées");
   } catch (error) {
     console.error("Impossible de démarrer le serveur:", error);
