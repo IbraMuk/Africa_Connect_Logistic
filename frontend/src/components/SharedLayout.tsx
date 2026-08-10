@@ -223,12 +223,12 @@ export default function SharedLayout({
         <div className="relative h-16 flex items-center justify-between px-4 border-b border-blue-800/40 flex-shrink-0">
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400" />
           <div
-            className={`flex items-center min-w-0 ${!sidebarOpen && "justify-center w-full"}`}
+            className={`flex items-center min-w-0 flex-1 ${!sidebarOpen && "justify-center w-full"}`}
           >
             <Logo
-              size={38}
+              size={sidebarOpen ? 36 : 34}
               showText={sidebarOpen}
-              textClassName="text-white"
+              textClassName="text-base text-white whitespace-nowrap"
               subTitle={null}
             />
           </div>
@@ -259,32 +259,30 @@ export default function SharedLayout({
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-2 space-y-0 overflow-y-auto">
+        <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
           {menuItems.map((item, index) => (
             <div key={index}>
               {!item.children ? (
-                <Link
-                  href={item.href || "#"}
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center justify-between px-3 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 ${
-                    item.current
-                      ? "bg-blue-500/20 text-blue-100 shadow-sm shadow-blue-500/20"
-                      : "text-blue-200/70 hover:bg-blue-800/40 hover:text-white"
-                  }`}
-                >
-                  <div className="flex items-center">
+                  <Link
+                    href={item.href || "#"}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
+                      item.current
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-blue-100/80 hover:bg-blue-800/40 hover:text-white"
+                    }`}
+                  >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
                     {sidebarOpen && <span className="ml-3">{item.title}</span>}
-                  </div>
-                </Link>
+                  </Link>
               ) : (
                 <div>
                   <button
                     onClick={() => toggleMenu(item.title)}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
                       expandedMenus.includes(item.title)
-                        ? "bg-blue-900/40 text-blue-100"
-                        : "text-blue-200/70 hover:bg-blue-800/40 hover:text-white"
+                        ? "bg-blue-800/40 text-white"
+                        : "text-blue-100/80 hover:bg-blue-800/40 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center">
@@ -310,18 +308,16 @@ export default function SharedLayout({
                           {!child.children ? (
                             <Link
                               href={child.href || "#"}
-                              className="flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors text-blue-300/60 hover:text-blue-100 hover:bg-blue-800/30"
+                              className="flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors text-blue-200/80 hover:text-white hover:bg-blue-800/30"
                             >
-                              <div className="flex items-center">
-                                <child.icon className="h-4 w-4 flex-shrink-0" />
-                                <span className="ml-3">{child.title}</span>
-                              </div>
+                              <child.icon className="h-4 w-4 flex-shrink-0" />
+                              <span className="ml-3">{child.title}</span>
                             </Link>
                           ) : (
                             <div>
                               <button
                                 onClick={() => toggleMenu(child.title)}
-                                className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors text-blue-300/60 hover:text-blue-100 hover:bg-blue-800/30"
+                                className="w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-colors text-blue-200/80 hover:text-white hover:bg-blue-800/30"
                               >
                                 <div className="flex items-center">
                                   <child.icon className="h-4 w-4 flex-shrink-0" />
@@ -343,7 +339,7 @@ export default function SharedLayout({
                                         <Link
                                           key={subChildIndex}
                                           href={subChild.href || "#"}
-                                          className="flex items-center px-3 py-2 text-sm rounded-lg transition-colors text-blue-400/50 hover:text-blue-100 hover:bg-blue-800/25"
+                                          className="flex items-center px-3 py-2 text-sm rounded-lg transition-colors text-blue-300/80 hover:text-white hover:bg-blue-800/25"
                                         >
                                           <subChild.icon className="h-4 w-4 flex-shrink-0" />
                                           <span className="ml-3">
