@@ -42,5 +42,8 @@ router.post('/import-export/generate-pdf', factureImportExportController.generat
 router.post('/import-export/create-and-generate', factureImportExportController.createAndGenerateFacture);
 router.get('/import-export/all', factureImportExportController.getAllFactures);
 router.get('/import-export/:id', factureImportExportController.getFactureById);
+router.get('/import-export/:id/pdf', factureImportExportController.generateFacturePDFById);
+router.put('/import-export/:id', factureImportExportController.updateFacture);
+router.delete('/import-export/:id', factureImportExportController.deleteFacture);
 
 module.exports = router;

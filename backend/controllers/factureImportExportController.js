@@ -283,6 +283,194 @@ exports.getFactureById = async (req, res) => {
   }
 };
 
+// Modifier une facture import/export
+exports.updateFacture = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const factureData = req.body;
+
+    const transaction = await sequelize.transaction();
+
+    try {
+      const facture = await Facture.findByPk(id, { transaction });
+      if (!facture) {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Facture non trouvée'
+        });
+      }
+
+      await facture.update({
+        typeOperation: factureData.typeOperation,
+        dateFacture: factureData.dateFacture,
+        dateEcheance: factureData.dateEcheance || null,
+        clientNom: factureData.clientNom,
+        clientEmail: factureData.clientEmail || null,
+        clientTelephone: factureData.clientTelephone || null,
+        clientAdresse: factureData.clientAdresse || null,
+        instructions: factureData.instructions || null,
+        totalHT: factureData.totalHT,
+        totalTVA: factureData.totalTVA,
+        totalTTC: factureData.totalTTC,
+        totalPoids: factureData.totalPoids || null,
+        totalVolume: factureData.totalVolume || null
+      }, { transaction });
+
+      await FactureMarchandise.destroy({ where: { factureId: id }, transaction });
+
+      for (const marchandise of factureData.marchandises) {
+        await FactureMarchandise.create({
+          factureId: id,
+          marchandiseId: marchandise.id || null,
+          reference: marchandise.reference || null,
+          designation: marchandise.designation,
+          categorie: marchandise.categorie_nom || null,
+          quantite: marchandise.quantite,
+          poids: marchandise.poids,
+          volume: marchandise.volume,
+          prixUnitaire: marchandise.prixUnitaire,
+          montantTotal: marchandise.montantTotal
+        }, { transaction });
+      }
+
+      await transaction.commit();
+
+      const updated = await Facture.findByPk(id, {
+        include: [{ model: FactureMarchandise, as: 'marchandises' }]
+      });
+
+      res.json({
+        success: true,
+        message: 'Facture mise à jour avec succès',
+        data: updated
+      });
+    } catch (error) {
+      if (!transaction.finished) {
+        await transaction.rollback();
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la facture:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour de la facture',
+      error: error.message
+    });
+  }
+};
+
+// Supprimer une facture import/export
+exports.deleteFacture = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const facture = await Facture.findByPk(id);
+
+    if (!facture) {
+      return res.status(404).json({
+        success: false,
+        message: 'Facture non trouvée'
+      });
+    }
+
+    const transaction = await sequelize.transaction();
+
+    try {
+      await FactureMarchandise.destroy({ where: { factureId: id }, transaction });
+      await facture.destroy({ transaction });
+      await transaction.commit();
+
+      res.json({
+        success: true,
+        message: 'Facture supprimée avec succès'
+      });
+    } catch (error) {
+      if (!transaction.finished) {
+        await transaction.rollback();
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Erreur lors de la suppression de la facture:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la suppression de la facture',
+      error: error.message
+    });
+  }
+};
+
+// Générer le PDF d'une facture import/export existante par ID
+exports.generateFacturePDFById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const facture = await Facture.findByPk(id, {
+      include: [{ model: FactureMarchandise, as: 'marchandises' }]
+    });
+
+    if (!facture) {
+      return res.status(404).json({
+        success: false,
+        message: 'Facture non trouvée'
+      });
+    }
+
+    const data = facture.toJSON();
+    data.dateGeneration = new Date().toLocaleString('fr-FR');
+    data.totalHT = parseFloat(data.totalHT);
+    data.totalTVA = parseFloat(data.totalTVA);
+    data.totalTTC = parseFloat(data.totalTTC);
+    data.totalPoids = parseFloat(data.totalPoids || 0);
+    data.totalVolume = parseFloat(data.totalVolume || 0);
+    data.marchandises = (data.marchandises || []).map(m => ({
+      ...m,
+      reference: m.reference || '',
+      categorie_nom: m.categorie || 'Non catégorisée',
+      quantite: parseFloat(m.quantite),
+      poids: parseFloat(m.poids),
+      volume: parseFloat(m.volume),
+      prixUnitaire: parseFloat(m.prixUnitaire),
+      montantTotal: parseFloat(m.montantTotal)
+    }));
+
+    const html = generateFactureHTML(data);
+
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--single-process']
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20mm',
+        right: '15mm',
+        bottom: '20mm',
+        left: '15mm'
+      }
+    });
+
+    await browser.close();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Facture-${data.numeroFacture}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Erreur lors de la génération du PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la génération du PDF',
+      error: error.message
+    });
+  }
+};
+
 // Fonction pour générer le HTML de la facture
 function generateFactureHTML(data) {
   return `

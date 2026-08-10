@@ -6,14 +6,18 @@ import {
     CheckCircleIcon,
     CurrencyDollarIcon,
     DocumentArrowDownIcon,
+    EyeIcon,
     GlobeAltIcon,
     MagnifyingGlassIcon,
+    PencilIcon,
     PrinterIcon,
     ScaleIcon,
+    TrashIcon,
     XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import ImportExportFacturesList from "@/components/ImportExportFacturesList";
 
 export default function ImportExportPage() {
   const [marchandises, setMarchandises] = useState<any[]>([]);
@@ -35,6 +39,8 @@ export default function ImportExportPage() {
     instructions: "",
     marchandises: [] as any[],
   });
+  const [editingFactureId, setEditingFactureId] = useState<number | null>(null);
+  const [refreshListKey, setRefreshListKey] = useState(0);
 
   // Charger les marchandises
   const loadMarchandises = async () => {
@@ -50,11 +56,62 @@ export default function ImportExportPage() {
     }
   };
 
+  const resetFactureForm = () => {
+    setEditingFactureId(null);
+    setSelectedMarchandises([]);
+    setFactureData({
+      typeOperation: "import",
+      clientNom: "",
+      clientEmail: "",
+      clientTelephone: "",
+      clientAdresse: "",
+      numeroFacture: "",
+      dateFacture: new Date().toISOString().split("T")[0],
+      dateEcheance: "",
+      instructions: "",
+      marchandises: [] as any[],
+    });
+  };
+
+  const openNewFactureModal = () => {
+    resetFactureForm();
+    setShowFactureModal(true);
+  };
+
+  const openEditFacture = (facture: any) => {
+    setEditingFactureId(facture.id);
+    setSelectedMarchandises(
+      (facture.marchandises || [])
+        .map((m: any) => m.marchandiseId)
+        .filter(Boolean),
+    );
+    setFactureData({
+      typeOperation: facture.typeOperation || "import",
+      clientNom: facture.clientNom || "",
+      clientEmail: facture.clientEmail || "",
+      clientTelephone: facture.clientTelephone || "",
+      clientAdresse: facture.clientAdresse || "",
+      numeroFacture: facture.numeroFacture || "",
+      dateFacture: facture.dateFacture || new Date().toISOString().split("T")[0],
+      dateEcheance: facture.dateEcheance || "",
+      instructions: facture.instructions || "",
+      marchandises: (facture.marchandises || []).map((m: any) => ({
+        id: m.marchandiseId || m.id,
+        reference: m.reference || "",
+        designation: m.designation || "",
+        categorie_nom: m.categorie || "Non catégorisée",
+        quantite: parseFloat(m.quantite) || 0,
+        poids: parseFloat(m.poids) || 0,
+        volume: parseFloat(m.volume) || 0,
+        prixUnitaire: parseFloat(m.prixUnitaire) || 0,
+        montantTotal: parseFloat(m.montantTotal) || 0,
+      })),
+    });
+    setShowFactureModal(true);
+  };
+
   useEffect(() => {
     loadMarchandises();
-    // Générer numéro de facture
-    const num = `FAC-IMP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`;
-    setFactureData((prev) => ({ ...prev, numeroFacture: num }));
   }, []);
 
   const filteredMarchandises = marchandises.filter(
@@ -160,14 +217,37 @@ export default function ImportExportPage() {
         dateGeneration: new Date().toLocaleString("fr-FR"),
       };
 
-      // Appel à l'API pour créer et générer le PDF en une seule opération
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+      if (editingFactureId) {
+        // Modification d'une facture existante
+        const response = await fetch(
+          `${API_URL}/factures/import-export/${editingFactureId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(facturePayload),
+          },
+        );
+
+        if (response.ok) {
+          toast.success("Facture modifiée avec succès");
+          setShowFactureModal(false);
+          resetFactureForm();
+          setRefreshListKey((k) => k + 1);
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.message || "Erreur lors de la modification");
+        }
+        return;
+      }
+
+      // Création d'une nouvelle facture avec PDF
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/factures/import-export/create-and-generate`,
+        `${API_URL}/factures/import-export/create-and-generate`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(facturePayload),
         },
       );
@@ -185,19 +265,8 @@ export default function ImportExportPage() {
 
         toast.success("Facture enregistrée et PDF généré avec succès");
         setShowFactureModal(false);
-        // Réinitialiser
-        setSelectedMarchandises([]);
-        setFactureData({
-          ...factureData,
-          clientNom: "",
-          clientEmail: "",
-          clientTelephone: "",
-          clientAdresse: "",
-          marchandises: [],
-        });
-        // Générer nouveau numéro de facture
-        const num = `FAC-IMP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`;
-        setFactureData((prev) => ({ ...prev, numeroFacture: num }));
+        resetFactureForm();
+        setRefreshListKey((k) => k + 1);
       } else {
         const errorData = await response.json();
         toast.error(errorData.message || "Erreur lors de la création de la facture");
@@ -213,10 +282,10 @@ export default function ImportExportPage() {
       {/* En-tête moderne */}
       <PageHeader
         title="Facturation Import/Export"
-        subtitle="Créez des factures pour les opérations d'import/export"
+        subtitle="Créez et gérez les factures d'import/export"
         action={{
           label: "Nouvelle Facture",
-          onClick: () => setShowFactureModal(true),
+          onClick: openNewFactureModal,
           icon: <DocumentArrowDownIcon className="h-4 w-4" />,
         }}
       />
@@ -265,6 +334,12 @@ export default function ImportExportPage() {
         ))}
       </div>
 
+      {/* Liste des factures */}
+      <ImportExportFacturesList
+        onEdit={openEditFacture}
+        refreshKey={refreshListKey}
+      />
+
       {/* Modal Facture */}
       {showFactureModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -279,7 +354,7 @@ export default function ImportExportPage() {
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-semibold text-white">
-                    Création Facture{" "}
+                    {editingFactureId ? "Modification Facture" : "Création Facture"}{" "}
                     {factureData.typeOperation === "import"
                       ? "d'Import"
                       : "d'Export"}
@@ -619,7 +694,9 @@ export default function ImportExportPage() {
                     className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 flex items-center"
                   >
                     <PrinterIcon className="h-4 w-4 mr-2" />
-                    Générer PDF
+                    {editingFactureId
+                      ? "Enregistrer les modifications"
+                      : "Générer PDF"}
                   </button>
                 </div>
               </div>
