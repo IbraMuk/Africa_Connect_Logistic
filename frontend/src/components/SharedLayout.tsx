@@ -67,14 +67,12 @@ export default function SharedLayout({
       href: "/clients",
       icon: UserGroupIcon,
       current: currentPage === "clients",
-      badge: "12",
     },
     {
       title: "Marchandise",
       href: "/marchandise",
       icon: PackageIcon,
       current: currentPage === "marchandise",
-      badge: "8",
     },
     {
       title: "Catégories",
@@ -87,13 +85,11 @@ export default function SharedLayout({
       href: "/tracking",
       icon: MapIcon,
       current: currentPage === "tracking",
-      badge: "5",
     },
     {
       title: "Facturation",
       href: "/facturation",
       icon: CurrencyDollarIcon,
-      badge: "3",
     },
     {
       title: "Transport",
@@ -125,7 +121,6 @@ export default function SharedLayout({
           title: "Transport Marchandises",
           href: "/transport-marchandise",
           icon: CubeIcon,
-          badge: "5",
         },
       ],
     },
@@ -147,7 +142,6 @@ export default function SharedLayout({
       title: "Import/Export",
       href: "/import-export",
       icon: GlobeAltIcon,
-      badge: "2",
     },
     {
       title: "Services Généraux",
@@ -384,14 +378,6 @@ export default function SharedLayout({
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-blue-800/40 bg-[#081936]/70">
-          {sidebarOpen && (
-            <div className="text-xs text-blue-300/50 text-center mb-3">
-              <p>Africa Connect System</p>
-              <p>Version 1.1</p>
-              <p>Développeur: Andy Mukonde</p>
-              <p>© 2026</p>
-            </div>
-          )}
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-red-400 rounded-lg hover:bg-red-500/10 hover:text-red-300 transition-colors"
