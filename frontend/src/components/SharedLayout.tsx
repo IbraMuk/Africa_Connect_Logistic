@@ -259,7 +259,7 @@ export default function SharedLayout({
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-2 space-y-0 overflow-y-auto">
           {menuItems.map((item, index) => (
             <div key={index}>
               {!item.children ? (
@@ -276,11 +276,6 @@ export default function SharedLayout({
                     <item.icon className="h-5 w-5 flex-shrink-0" />
                     {sidebarOpen && <span className="ml-3">{item.title}</span>}
                   </div>
-                  {sidebarOpen && item.badge && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-blue-800/60 text-blue-300 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
                 </Link>
               ) : (
                 <div>
@@ -321,11 +316,6 @@ export default function SharedLayout({
                                 <child.icon className="h-4 w-4 flex-shrink-0" />
                                 <span className="ml-3">{child.title}</span>
                               </div>
-                              {child.badge && (
-                                <span className="px-2 py-0.5 text-xs font-medium bg-blue-800/60 text-blue-300 rounded-full">
-                                  {child.badge}
-                                </span>
-                              )}
                             </Link>
                           ) : (
                             <div>
@@ -378,6 +368,14 @@ export default function SharedLayout({
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-blue-800/40 bg-[#081936]/70">
+          {sidebarOpen && (
+            <div className="text-xs text-blue-300/50 text-center mb-3">
+              <p>Africa Connect System</p>
+              <p>Version 1.1</p>
+              <p>Développeur: Andy Mukonde</p>
+              <p>© 2026</p>
+            </div>
+          )}
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center px-3 py-2 text-sm font-medium text-red-400 rounded-lg hover:bg-red-500/10 hover:text-red-300 transition-colors"
