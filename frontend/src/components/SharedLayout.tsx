@@ -269,7 +269,7 @@ export default function SharedLayout({
                     className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
                       item.current
                         ? "bg-blue-600 text-white shadow-sm"
-                        : "text-blue-100/80 hover:bg-blue-800/40 hover:text-white"
+                        : "text-white hover:bg-blue-800/40"
                     }`}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -282,7 +282,7 @@ export default function SharedLayout({
                     className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-colors ${
                       expandedMenus.includes(item.title)
                         ? "bg-blue-800/40 text-white"
-                        : "text-blue-100/80 hover:bg-blue-800/40 hover:text-white"
+                        : "text-white hover:bg-blue-800/40"
                     }`}
                   >
                     <div className="flex items-center">
@@ -308,7 +308,7 @@ export default function SharedLayout({
                           {!child.children ? (
                             <Link
                               href={child.href || "#"}
-                              className="flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors text-blue-200/80 hover:text-white hover:bg-blue-800/30"
+                              className="flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors text-white hover:bg-blue-800/30"
                             >
                               <child.icon className="h-4 w-4 flex-shrink-0" />
                               <span className="ml-3">{child.title}</span>
@@ -317,7 +317,7 @@ export default function SharedLayout({
                             <div>
                               <button
                                 onClick={() => toggleMenu(child.title)}
-                                className="w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-colors text-blue-200/80 hover:text-white hover:bg-blue-800/30"
+                                className="w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-colors text-white hover:bg-blue-800/30"
                               >
                                 <div className="flex items-center">
                                   <child.icon className="h-4 w-4 flex-shrink-0" />
@@ -339,7 +339,7 @@ export default function SharedLayout({
                                         <Link
                                           key={subChildIndex}
                                           href={subChild.href || "#"}
-                                          className="flex items-center px-3 py-2 text-sm rounded-lg transition-colors text-blue-300/80 hover:text-white hover:bg-blue-800/25"
+                                          className="flex items-center px-3 py-2 text-sm rounded-lg transition-colors text-white hover:bg-blue-800/25"
                                         >
                                           <subChild.icon className="h-4 w-4 flex-shrink-0" />
                                           <span className="ml-3">
