@@ -8,6 +8,7 @@ require("./models/index");
 
 // Importer les routes
 const authRoutes = require("./routes/auth");
+const adminRoutes = require("./routes/administration");
 const personnelRoutes = require("./routes/personnel");
 const marchandiseRoutes = require("./routes/marchandise");
 const marchandisesRoutes = require("./routes/marchandises-pg");
@@ -48,6 +49,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/personnel", personnelRoutes);
 app.use("/api/marchandise", marchandiseRoutes);
 app.use("/api/marchandises", marchandisesRoutes);
@@ -414,6 +416,9 @@ async function startServer() {
         "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Synchroniser les modèles Sequelize (crée les tables manquantes sans supprimer les données)
+    await sequelize.sync({ force: false });
 
     console.log("✓ Tables vérifiées");
   } catch (error) {

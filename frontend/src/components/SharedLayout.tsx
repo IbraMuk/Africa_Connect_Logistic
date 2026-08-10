@@ -25,6 +25,7 @@ import {
     UserGroupIcon,
     UserIcon,
     UsersIcon,
+    ShieldCheckIcon,
     WrenchScrewdriverIcon,
     XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -163,6 +164,12 @@ export default function SharedLayout({
           icon: BoltIcon,
         },
       ],
+    },
+    {
+      title: "Administration",
+      href: "/administration",
+      icon: ShieldCheckIcon,
+      current: currentPage === "administration",
     },
     {
       title: "Rapports",

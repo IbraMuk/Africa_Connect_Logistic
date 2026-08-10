@@ -5,6 +5,9 @@ const Facture = require("./Facture");
 const FactureMarchandise = require("./FactureMarchandise");
 const FactureStandard = require("./FactureStandard");
 const Category = require("./Category");
+const Permission = require("./Permission");
+const Role = require("./Role");
+const RolePermission = require("./RolePermission");
 const TransportPersonnel = require("./TransportPersonnel");
 const TransportMarchandise = require("./TransportMarchandise");
 const Marchandise = require("./Marchandise");
@@ -80,6 +83,10 @@ ImportExport.belongsTo(User, { foreignKey: "clientId", as: "client" });
 Facture.hasMany(FactureMarchandise, { foreignKey: "factureId", as: "marchandises" });
 FactureMarchandise.belongsTo(Facture, { foreignKey: "factureId", as: "facture" });
 
+// Associations Rôles <-> Permissions
+Role.belongsToMany(Permission, { through: RolePermission, as: "permissions" });
+Permission.belongsToMany(Role, { through: RolePermission, as: "roles" });
+
 // Associations FactureStandard <-> Client (factures classiques par client)
 Client.hasMany(FactureStandard, { foreignKey: "clientId", as: "facturesStandard" });
 FactureStandard.belongsTo(Client, { foreignKey: "clientId", as: "client" });
@@ -92,6 +99,9 @@ module.exports = {
   FactureMarchandise,
   FactureStandard,
   Category,
+  Permission,
+  Role,
+  RolePermission,
   TransportPersonnel,
   TransportMarchandise,
   Marchandise,
