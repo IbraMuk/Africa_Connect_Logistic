@@ -195,8 +195,10 @@ exports.createAndGenerateFacture = async (req, res) => {
       res.send(pdfBuffer);
       
     } catch (error) {
-      // Annuler la transaction en cas d'erreur
-      await transaction.rollback();
+      // Annuler la transaction en cas d'erreur (seulement si elle n'a pas déjà été validée/annulée)
+      if (!transaction.finished) {
+        await transaction.rollback();
+      }
       throw error;
     }
   } catch (error) {
