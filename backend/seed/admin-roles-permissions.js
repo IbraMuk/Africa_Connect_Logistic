@@ -193,7 +193,7 @@ async function seedRolesAndPermissions() {
     for (const p of permissionDefinitions) {
       const [permission, created] = await Permission.findOrCreate({
         where: { code: p.code },
-        defaults: p,
+        defaults: { nom: p.nom, code: p.code, description: p.description },
       });
       permissionMap[p.code] = permission.id;
       if (created) console.log(`Permission créée: ${p.code}`);
@@ -203,9 +203,14 @@ async function seedRolesAndPermissions() {
     const roleMap = {};
     for (const r of roleDefinitions) {
       const [role, created] = await Role.findOrCreate({
-        where: { code: r.code },
-        defaults: { nom: r.nom, description: r.description, statut: 'actif' },
+        where: { nom: r.nom },
+        defaults: { nom: r.nom, code: r.code, description: r.description, statut: 'actif' },
       });
+      // S'assurer que le code est rempli si trouvé sans code
+      if (!role.code) {
+        role.code = r.code;
+        await role.save();
+      }
       roleMap[r.code] = role.id;
       if (created) console.log(`Rôle créé: ${r.nom}`);
     }

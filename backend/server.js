@@ -405,7 +405,7 @@ async function startServer() {
     // Créer la table users si elle n'existe pas
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS "users" (
-        "id" SERIAL PRIMARY KEY,
+        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "nom" VARCHAR(255) NOT NULL,
         "prenom" VARCHAR(255) NOT NULL,
         "email" VARCHAR(255) UNIQUE NOT NULL,
@@ -418,17 +418,17 @@ async function startServer() {
       )
     `);
 
-    // Migrations légères pour aligner une ancienne table users (motdepasse -> password, suppression check role)
+    // Migrations légères pour aligner une ancienne table users
     await sequelize.query(`
       DO $$
       BEGIN
         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'motdepasse') THEN
           ALTER TABLE "users" RENAME COLUMN "motdepasse" TO "password";
         END IF;
-        IF EXISTS (
-          SELECT 1 FROM information_schema.table_constraints
-          WHERE table_name = 'users' AND constraint_type = 'CHECK'
-        ) THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'telephone') THEN
+          ALTER TABLE "users" ADD COLUMN "telephone" VARCHAR(20);
+        END IF;
+        IF EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE table_name = 'users' AND constraint_type = 'CHECK') THEN
           ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "users_role_check";
         END IF;
       END $$;
@@ -448,6 +448,16 @@ async function startServer() {
     `);
 
     await sequelize.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'roles' AND column_name = 'code') THEN
+          ALTER TABLE "roles" ADD COLUMN "code" VARCHAR(255);
+        END IF;
+        UPDATE "roles" SET "code" = COALESCE("code", lower(regexp_replace(replace("nom", ' ', '-'), '[^a-z0-9-]', '', 'g'))) WHERE "code" IS NULL;
+      END $$;
+    `);
+
+    await sequelize.query(`
       CREATE TABLE IF NOT EXISTS "permissions" (
         "id" SERIAL PRIMARY KEY,
         "nom" VARCHAR(255) NOT NULL UNIQUE,
@@ -456,6 +466,16 @@ async function startServer() {
         "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    await sequelize.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'permissions' AND column_name = 'code') THEN
+          ALTER TABLE "permissions" ADD COLUMN "code" VARCHAR(255);
+        END IF;
+        UPDATE "permissions" SET "code" = COALESCE("code", lower(regexp_replace(replace("nom", ' ', '-'), '[^a-z0-9-]', '', 'g'))) WHERE "code" IS NULL;
+      END $$;
     `);
 
     await sequelize.query(`
