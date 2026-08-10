@@ -409,16 +409,79 @@ async function startServer() {
         "nom" VARCHAR(255) NOT NULL,
         "prenom" VARCHAR(255) NOT NULL,
         "email" VARCHAR(255) UNIQUE NOT NULL,
-        "motdepasse" VARCHAR(255) NOT NULL,
-        "role" VARCHAR(20) NOT NULL DEFAULT 'utilisateur' CHECK ("role" IN ('admin','utilisateur','client','chauffeur')),
+        "password" VARCHAR(255) NOT NULL,
+        "role" VARCHAR(20) NOT NULL DEFAULT 'client',
         "statut" VARCHAR(20) NOT NULL DEFAULT 'actif' CHECK ("statut" IN ('actif','inactif','suspendu')),
+        "telephone" VARCHAR(20),
         "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Synchroniser les modèles Sequelize (crée les tables manquantes sans supprimer les données)
-    await sequelize.sync({ force: false });
+    // Migrations légères pour aligner une ancienne table users (motdepasse -> password, suppression check role)
+    await sequelize.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'motdepasse') THEN
+          ALTER TABLE "users" RENAME COLUMN "motdepasse" TO "password";
+        END IF;
+        IF EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE table_name = 'users' AND constraint_type = 'CHECK'
+        ) THEN
+          ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "users_role_check";
+        END IF;
+      END $$;
+    `);
+
+    // Créer les tables d'administration si elles n'existent pas
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS "roles" (
+        "id" SERIAL PRIMARY KEY,
+        "nom" VARCHAR(255) NOT NULL UNIQUE,
+        "code" VARCHAR(255) NOT NULL UNIQUE,
+        "description" TEXT,
+        "statut" VARCHAR(20) NOT NULL DEFAULT 'actif',
+        "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS "permissions" (
+        "id" SERIAL PRIMARY KEY,
+        "nom" VARCHAR(255) NOT NULL UNIQUE,
+        "code" VARCHAR(255) NOT NULL UNIQUE,
+        "description" TEXT,
+        "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "dateModification" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS "role_permissions" (
+        "id" SERIAL PRIMARY KEY,
+        "roleId" INTEGER NOT NULL,
+        "permissionId" INTEGER NOT NULL,
+        "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE ("roleId", "permissionId"),
+        FOREIGN KEY ("roleId") REFERENCES "roles"("id") ON DELETE CASCADE,
+        FOREIGN KEY ("permissionId") REFERENCES "permissions"("id") ON DELETE CASCADE
+      )
+    `);
+
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS "audit_logs" (
+        "id" SERIAL PRIMARY KEY,
+        "userId" VARCHAR(255),
+        "action" VARCHAR(255) NOT NULL,
+        "entity" VARCHAR(255),
+        "entityId" VARCHAR(255),
+        "details" TEXT,
+        "ipAddress" VARCHAR(255),
+        "dateCreation" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     // Initialiser les rôles et permissions par défaut
     const { seedRolesAndPermissions } = require("./seed/admin-roles-permissions");

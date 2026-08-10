@@ -107,10 +107,11 @@ exports.getRoleById = async (req, res) => {
 
 exports.createRole = async (req, res) => {
   try {
-    const { nom, description } = req.body;
+    const { nom, description, code } = req.body;
     if (!nom) return res.status(400).json({ success: false, message: 'Le nom du rôle est obligatoire' });
-    const role = await Role.create({ nom, description });
-    await logAction({ action: 'CREATE_ROLE', entity: 'role', entityId: role.id, details: { nom: role.nom }, req });
+    const roleCode = code || nom.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const role = await Role.create({ nom, code: roleCode, description });
+    await logAction({ action: 'CREATE_ROLE', entity: 'role', entityId: role.id, details: { nom: role.nom, code: role.code }, req });
     res.status(201).json({ success: true, message: 'Rôle créé avec succès', data: role });
   } catch (error) {
     console.error('Erreur createRole:', error);
