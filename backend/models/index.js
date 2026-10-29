@@ -85,8 +85,8 @@ Facture.hasMany(FactureMarchandise, { foreignKey: "factureId", as: "marchandises
 FactureMarchandise.belongsTo(Facture, { foreignKey: "factureId", as: "facture" });
 
 // Associations Rôles <-> Permissions
-Role.belongsToMany(Permission, { through: RolePermission, as: "permissions" });
-Permission.belongsToMany(Role, { through: RolePermission, as: "roles" });
+Role.belongsToMany(Permission, { through: RolePermission, as: "permissions", foreignKey: "roleId", otherKey: "permissionId" });
+Permission.belongsToMany(Role, { through: RolePermission, as: "roles", foreignKey: "permissionId", otherKey: "roleId" });
 
 // Associations User <-> AuditLog
 User.hasMany(AuditLog, { foreignKey: "userId", as: "auditLogs" });
